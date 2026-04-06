@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-cv
+  namespace: argocd
+spec:
+  project: apps
+  source:
+    repoURL: https://github.com/Filipcsupka/infra
+    targetRevision: HEAD
+    path: gitops/apps/my-cv/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cv
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
