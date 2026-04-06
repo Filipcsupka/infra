@@ -1,0 +1,39 @@
+# ─── ServiceAccount ────────────────────────────────────────────────────────────
+# The CV pod uses this SA to read cluster state via the K8s API.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cv-metrics-reader
+  namespace: cv
+automountServiceAccountToken: true
+
+---
+# ─── ClusterRole ───────────────────────────────────────────────────────────────
+# Read-only access to nodes, pods, namespaces, deployments.
+# Deliberately minimal — this is a public CV, not an ops tool.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cv-metrics-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "namespaces"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+    verbs: ["get", "list"]
+
+---
+# ─── ClusterRoleBinding ────────────────────────────────────────────────────────
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cv-metrics-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cv-metrics-reader
+subjects:
+  - kind: ServiceAccount
+    name: cv-metrics-reader
+    namespace: cv

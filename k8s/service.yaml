@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: filip-cv
+  namespace: cv
+  labels:
+    app: filip-cv
+spec:
+  type: ClusterIP
+  selector:
+    app: filip-cv
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8080

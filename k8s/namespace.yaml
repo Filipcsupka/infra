@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cv
+  labels:
+    app.kubernetes.io/name: filip-cv
+    environment: production
