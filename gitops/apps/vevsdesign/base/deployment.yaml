@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app-2  # TODO: replace with actual app name
-  namespace: app-2
+  name: vevsdesign
+  namespace: vevsdesign
   labels:
-    app: app-2
+    app: vevsdesign
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: app-2
+      app: vevsdesign
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,22 +18,22 @@ spec:
   template:
     metadata:
       labels:
-        app: app-2
+        app: vevsdesign
     spec:
-      serviceAccountName: app-2
+      serviceAccountName: vevsdesign
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
         runAsGroup: 1001
       containers:
-        - name: app-2
+        - name: vevsdesign
           image: PLACEHOLDER_IMAGE  # TODO: set actual image
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
             - configMapRef:
-                name: app-2-config
+                name: vevsdesign-config
           resources:
             requests:
               cpu: "50m"

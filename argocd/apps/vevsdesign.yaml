@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app-2        # TODO: rename to actual app name
+  name: vevsdesign
   namespace: argocd
 spec:
   project: apps
   source:
     repoURL: https://github.com/Filipcsupka/infra
     targetRevision: HEAD
-    path: gitops/apps/app-2/overlays/prod
+    path: gitops/apps/vevsdesign/overlays/prod
   destination:
     server: https://kubernetes.default.svc
-    namespace: app-2  # TODO: set actual namespace
+    namespace: vevsdesign
   syncPolicy:
     automated:
       prune: true

@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/name: filip-cv
     app.kubernetes.io/version: "REPLACED_BY_CI"
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: filip-cv

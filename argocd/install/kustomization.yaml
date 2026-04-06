@@ -5,3 +5,28 @@ namespace: argocd
 
 resources:
   - https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+patches:
+  # Server behaviour: disable TLS (offloaded to ingress) + allow insecure
+  - path: patches/argocd-server-deployment.yaml
+    target:
+      kind: Deployment
+      name: argocd-server
+
+  # Main server config
+  - path: patches/argocd-cm.yaml
+    target:
+      kind: ConfigMap
+      name: argocd-cm
+
+  # RBAC — who can do what in the UI / API
+  - path: patches/argocd-rbac-cm.yaml
+    target:
+      kind: ConfigMap
+      name: argocd-rbac-cm
+
+  # Expose argocd-server via NodePort so it's reachable without a LoadBalancer
+  - path: patches/argocd-server-service.yaml
+    target:
+      kind: Service
+      name: argocd-server

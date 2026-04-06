@@ -7,3 +7,4 @@ resources:
   - service.yaml
   - rbac.yaml
   - cloudflare-tunnel.yaml
+  - ingress.yaml

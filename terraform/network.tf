@@ -1,6 +1,7 @@
 resource "hcloud_network" "k8s" {
-  name     = "k8s-network"
+  name     = local.network_name
   ip_range = var.private_network_cidr
+  labels   = local.common_labels
 }
 
 resource "hcloud_network_subnet" "k8s" {

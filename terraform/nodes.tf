@@ -4,7 +4,8 @@ data "hcloud_ssh_key" "k8s" {
 
 # ── Control plane ────────────────────────────────────────────────────────────
 resource "hcloud_server" "control_plane" {
-  name         = "k8s-control-plane"
+  name         = local.control_plane_name
+  labels       = local.common_labels
   image        = var.os_image
   server_type  = var.server_type
   location     = var.location
@@ -26,7 +27,8 @@ resource "hcloud_server" "control_plane" {
 
 # ── Worker ───────────────────────────────────────────────────────────────────
 resource "hcloud_server" "worker" {
-  name         = "k8s-worker-1"
+  name         = local.worker_name
+  labels       = local.common_labels
   image        = var.os_image
   server_type  = var.server_type
   location     = var.location

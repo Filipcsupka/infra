@@ -1,5 +1,6 @@
 resource "hcloud_firewall" "k8s" {
-  name = "k8s-firewall"
+  name   = local.firewall_name
+  labels = local.common_labels
 
   # SSH — restrict source_ips to your IP in production
   rule {

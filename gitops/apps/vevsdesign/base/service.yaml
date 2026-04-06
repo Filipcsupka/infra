@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: app-2
-  namespace: app-2
+  name: vevsdesign
+  namespace: vevsdesign
   labels:
-    app: app-2
+    app: vevsdesign
 spec:
   type: ClusterIP
   selector:
-    app: app-2
+    app: vevsdesign
   ports:
     - name: http
       protocol: TCP
