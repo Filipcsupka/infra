@@ -1,0 +1,57 @@
+---
+- name: Install k3s — control-plane node + worker node on same machine
+  hosts: control_plane
+  become: true
+
+  tasks:
+    - name: Install dependencies
+      apt:
+        name: curl
+        state: present
+        update_cache: true
+
+    # ── Control-plane node ────────────────────────────────────────────────────
+
+    - name: Check if k3s server already installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Install k3s server (control-plane + worker on single node)
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server \
+          --disable=traefik \
+          --disable=servicelb \
+          --tls-san={{ ansible_host }}" sh -
+      when: not k3s_binary.stat.exists
+
+    - name: Wait for node Ready
+      command: kubectl get nodes
+      register: nodes_output
+      until: "'Ready' in nodes_output.stdout"
+      retries: 30
+      delay: 10
+
+    # ── Kubeconfig ────────────────────────────────────────────────────────────
+
+    - name: Show node
+      command: kubectl get nodes -o wide
+      register: nodes_wide
+
+    - name: Print node
+      debug:
+        msg: "{{ nodes_wide.stdout_lines }}"
+
+    - name: Fetch kubeconfig
+      fetch:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: /tmp/kubeconfig.yaml
+        flat: true
+
+    - name: Replace 127.0.0.1 with public IP in kubeconfig
+      delegate_to: localhost
+      become: false
+      replace:
+        path: /tmp/kubeconfig.yaml
+        regexp: 'localhost|127\.0\.0\.1'
+        replace: "{{ ansible_host }}"
