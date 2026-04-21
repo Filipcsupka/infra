@@ -12,7 +12,7 @@ on:
 env:
   TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
   TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
-  TF_VAR_server_type: cx22
+  TF_VAR_server_type: cx23
   TF_VAR_location: nbg1
   TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
 

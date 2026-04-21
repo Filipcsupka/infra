@@ -1,6 +1,0 @@
-# Copy to terraform.tfvars and fill in values. Never commit terraform.tfvars.
-
-hcloud_token = "your-hetzner-api-token"
-ssh_key_name = "your-hetzner-ssh-key-name"
-location     = "nbg1"
-server_type  = "cx23"
