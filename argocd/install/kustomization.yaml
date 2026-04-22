@@ -31,8 +31,13 @@ patches:
       kind: Service
       name: argocd-server
 
-  # Scale down unused components (dex, applicationset, notifications)
-  - path: patches/argocd-scale-down.yaml
-
   # Tight resource limits for low-resource single node
   - path: patches/argocd-resources.yaml
+
+replicas:
+  - name: argocd-dex-server
+    count: 0
+  - name: argocd-applicationset-controller
+    count: 0
+  - name: argocd-notifications-controller
+    count: 0
