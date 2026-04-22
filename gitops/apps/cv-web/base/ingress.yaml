@@ -1,18 +1,18 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: vevsdesign
-  namespace: vevsdesign
+  name: filip-cv
+  namespace: cv
 spec:
   ingressClassName: traefik
   rules:
-    - host: vevsdesign.sk
+    - host: filipcsupka.online
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: vevsdesign
+                name: filip-cv
                 port:
                   number: 80

@@ -4,6 +4,10 @@ kind: Kustomization
 resources:
   - ../../base
 
+images:
+  - name: ghcr.io/filipcsupka/filip-cv
+    newTag: latest
+
 patches:
   - patch: |-
       - op: replace

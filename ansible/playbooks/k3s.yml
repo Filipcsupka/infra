@@ -6,7 +6,9 @@
   tasks:
     - name: Install dependencies
       apt:
-        name: curl
+        name:
+          - curl
+          - ca-certificates
         state: present
         update_cache: true
 
@@ -36,6 +38,58 @@
       command: >
         kubectl taint node --all node-role.kubernetes.io/control-plane:NoSchedule-
       ignore_errors: true
+
+    # ── Traefik ingress ───────────────────────────────────────────────────────
+    # k3s bundled Traefik and ServiceLB are disabled above. Install Traefik
+    # explicitly with hostPorts so the single Hetzner node serves HTTP/HTTPS
+    # directly on ports 80/443.
+
+    - name: Check if Helm is installed
+      command: helm version --short
+      register: helm_version
+      changed_when: false
+      failed_when: false
+
+    - name: Install Helm
+      shell: curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      when: helm_version.rc != 0
+
+    - name: Add Traefik Helm repository
+      command: helm repo add traefik https://traefik.github.io/charts
+      register: traefik_repo
+      changed_when: "'has been added' in traefik_repo.stdout"
+      failed_when:
+        - traefik_repo.rc != 0
+        - "'already exists' not in traefik_repo.stderr"
+
+    - name: Update Helm repositories
+      command: helm repo update
+
+    - name: Create traefik namespace
+      command: kubectl create namespace traefik --dry-run=client -o yaml
+      register: traefik_namespace
+      changed_when: false
+
+    - name: Apply traefik namespace
+      shell: kubectl apply -f -
+      args:
+        stdin: "{{ traefik_namespace.stdout }}"
+
+    - name: Copy Traefik Helm values
+      copy:
+        src: ../helm-values/traefik.yaml
+        dest: /tmp/traefik-values.yaml
+        mode: "0644"
+
+    - name: Install or upgrade Traefik ingress controller
+      command: >
+        helm upgrade --install traefik traefik/traefik
+        --namespace traefik
+        --values /tmp/traefik-values.yaml
+        --wait
+        --timeout 300s
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
     # ── Kubeconfig ────────────────────────────────────────────────────────────
 

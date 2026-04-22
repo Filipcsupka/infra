@@ -5,5 +5,4 @@ resources:
   - namespace.yaml
   - deployment.yaml
   - service.yaml
-  - rbac.yaml
-  - cloudflare-tunnel.yaml
+  - ingress.yaml

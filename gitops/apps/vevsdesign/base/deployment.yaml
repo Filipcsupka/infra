@@ -25,9 +25,10 @@ spec:
         runAsNonRoot: true
         runAsUser: 1001
         runAsGroup: 1001
+        fsGroup: 1001
       containers:
         - name: vevsdesign
-          image: PLACEHOLDER_IMAGE  # TODO: set actual image
+          image: ghcr.io/filipcsupka/vevsdesign:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
@@ -58,3 +59,13 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            - name: caddy-data
+              mountPath: /data
+            - name: caddy-config
+              mountPath: /config
+      volumes:
+        - name: caddy-data
+          emptyDir: {}
+        - name: caddy-config
+          emptyDir: {}

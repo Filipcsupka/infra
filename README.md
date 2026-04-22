@@ -81,48 +81,36 @@ Each app follows the standard Kustomize layout: `base/` contains the canonical m
   ```
 - [ ] Verify both apps sync successfully in the ArgoCD UI
 
-### 5 — Cloudflare Tunnel (my-cv)
+### 5 — Traefik ingress + Cloudflare DNS/proxy
 
-The CV app uses `cloudflared` instead of a traditional ingress + cert-manager. Cloudflare handles TLS termination.
+The cluster exposes apps through Traefik on the Hetzner node ports `80` and `443`.
+Cloudflare provides public DNS and browser-facing HTTPS.
+Traefik is installed by Ansible through Helm; chart settings are in `ansible/helm-values/traefik.yaml`.
 
-- [ ] Install `cloudflared` CLI locally: `brew install cloudflare/cloudflare/cloudflared`
-- [ ] Log in: `cloudflared tunnel login`
-- [ ] Create the tunnel: `cloudflared tunnel create filip-cv`
-- [ ] Note the tunnel UUID printed in the output
-- [ ] Update `gitops/apps/my-cv/base/cloudflare-tunnel.yaml` — replace `<TUNNEL_ID>` with the UUID
-- [ ] Create a DNS CNAME in Cloudflare pointing your domain → `<TUNNEL_ID>.cfargotunnel.com`
-- [ ] Create the credentials secret in the cluster:
+- [ ] Confirm the Hetzner firewall allows inbound TCP `80` and `443`.
+- [ ] Run the Ansible k3s playbook; it installs or upgrades Traefik with host ports:
   ```bash
-  kubectl -n cv create secret generic cloudflare-tunnel \
-    --from-file=credentials.json=~/.cloudflared/<TUNNEL_ID>.json
+  ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/k3s.yml
   ```
-- [ ] Verify `cloudflared` pod is `Running` in the `cv` namespace
-
-### 6 — Ingress + TLS (vevsdesign and fallback ingress for my-cv)
-
-Both apps have an `ingress.yaml` in their base. These require an ingress controller and TLS certificates.
-
-- [ ] Deploy `ingress-nginx` to the cluster:
+- [ ] In Cloudflare, create proxied `A` records pointing to the Hetzner public IP:
+  - `filipcsupka.online` → `<HETZNER_PUBLIC_IP>`
+  - `vevsdesign.sk` → `<HETZNER_PUBLIC_IP>`
+- [ ] In Cloudflare SSL/TLS, set encryption mode to `Flexible` for the first deploy.
+- [ ] Verify Traefik:
   ```bash
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.10.1/deploy/static/provider/baremetal/deploy.yaml
+  kubectl -n traefik get pods
+  kubectl get ingress -A
   ```
-- [ ] Deploy `cert-manager`:
-  ```bash
-  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
-  ```
-- [ ] Create a `ClusterIssuer` for Let's Encrypt (staging first, then production)
-- [ ] Update `gitops/apps/my-cv/base/ingress.yaml` — replace `cv.example.com` with actual domain
-- [ ] Update `gitops/apps/vevsdesign/base/ingress.yaml` — replace `vevsdesign.example.com` with actual domain
-- [ ] Add `cert-manager.io/cluster-issuer: letsencrypt-prod` annotation to both ingress resources
-- [ ] Point DNS A records for both domains to the Hetzner worker node public IP
 
-### 7 — vevsdesign app
+Later, if origin TLS is required, add cert-manager and switch Cloudflare SSL/TLS from `Flexible` to `Full (strict)`.
 
-- [ ] Decide on the container image and update `gitops/apps/vevsdesign/base/deployment.yaml` — replace `PLACEHOLDER_IMAGE`
-- [ ] Set the actual namespace name if different from `vevsdesign`
-- [ ] Add any app-specific environment variables to `gitops/apps/vevsdesign/base/configmap.yaml`
+### 6 — vevsdesign app
 
-### 8 — Optional: remote Terraform state
+- [ ] Image is published to `ghcr.io/filipcsupka/vevsdesign`.
+- [ ] GitHub Actions updates `gitops/apps/vevsdesign/overlays/prod/kustomization.yaml` with the latest `sha-...` tag.
+- [ ] Add app-specific environment variables to `gitops/apps/vevsdesign/base/configmap.yaml` when needed.
+
+### 7 — Optional: remote Terraform state
 
 By default, state is stored locally in `terraform/terraform.tfstate`.  
 For team use or to avoid losing state, switch to Hetzner Object Storage.
@@ -132,7 +120,7 @@ For team use or to avoid losing state, switch to Hetzner Object Storage.
 - [ ] Fill in bucket endpoint, name, and credentials
 - [ ] Run `terraform init -migrate-state`
 
-### 9 — Housekeeping
+### 8 — Housekeeping
 
 - [ ] Set git identity globally so commits are attributed correctly:
   ```bash

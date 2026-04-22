@@ -25,89 +25,11 @@ spec:
       annotations:
         prometheus.io/scrape: "false"
     spec:
-      serviceAccountName: cv-metrics-reader   # RBAC — lets init container read cluster state
-
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
         runAsGroup: 1001
         fsGroup: 1001
-
-      # ── Init container: query K8s API → write status.json ──────────────────
-      # Runs once before nginx starts. Uses the pod's service account token to
-      # call the in-cluster API server. Output is a JSON file served by nginx
-      # at /status.json — the frontend fetches it on load.
-      initContainers:
-        - name: cluster-metrics
-          image: bitnami/kubectl:latest
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 1001
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
-          resources:
-            requests:
-              cpu: "20m"
-              memory: "32Mi"
-            limits:
-              cpu: "100m"
-              memory: "64Mi"
-          command:
-            - /bin/sh
-            - -c
-            - |
-              set -e
-              API="https://kubernetes.default.svc"
-              TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-              CA=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-
-              auth="-H \"Authorization: Bearer $TOKEN\" --cacert $CA"
-
-              # ── Nodes ─────────────────────────────────────────��──
-              NODES_JSON=$(curl -sf $auth "$API/api/v1/nodes")
-              TOTAL_NODES=$(echo "$NODES_JSON" | grep -c '"name":' || echo 0)
-              READY_NODES=$(echo "$NODES_JSON" | grep -c '"Ready"' || echo 0)
-
-              # ── Pods (all namespaces) ────────────────────────────
-              PODS_JSON=$(curl -sf $auth "$API/api/v1/pods")
-              RUNNING_PODS=$(echo "$PODS_JSON" | grep -c '"Running"' || echo 0)
-              TOTAL_PODS=$(echo "$PODS_JSON"   | grep -c '"name":' || echo 0)
-
-              # ── Namespaces ───────────────────────────────────────
-              NS_JSON=$(curl -sf $auth "$API/api/v1/namespaces")
-              TOTAL_NS=$(echo "$NS_JSON" | grep -c '"name":' || echo 0)
-
-              # ── Deployments ──────────────────────────────────────
-              DEPLOY_JSON=$(curl -sf $auth "$API/apis/apps/v1/deployments")
-              TOTAL_DEPLOYS=$(echo "$DEPLOY_JSON" | grep -c '"name":' || echo 0)
-
-              # ── Cluster version ───────────────────────────────���──
-              VERSION_JSON=$(curl -sf $auth "$API/version")
-              K8S_VERSION=$(echo "$VERSION_JSON" | grep '"gitVersion"' | cut -d'"' -f4 || echo "unknown")
-
-              TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-              # ── Write JSON ───────────────────────────────────────
-              cat > /html/status.json << EOF
-              {
-                "nodes":       $TOTAL_NODES,
-                "readyNodes":  $READY_NODES,
-                "pods":        $TOTAL_PODS,
-                "runningPods": $RUNNING_PODS,
-                "namespaces":  $TOTAL_NS,
-                "deployments": $TOTAL_DEPLOYS,
-                "k8sVersion":  "$K8S_VERSION",
-                "timestamp":   "$TIMESTAMP",
-                "live":        true
-              }
-              EOF
-
-              echo "status.json written at $TIMESTAMP"
-          volumeMounts:
-            - name: html-status
-              mountPath: /html
 
       # ── Main container: nginx ─────────────────────────────────────���─────────
       containers:
@@ -154,10 +76,6 @@ spec:
               mountPath: /var/log/nginx
             - name: nginx-run
               mountPath: /var/run
-            - name: html-status           # status.json written by init container
-              mountPath: /usr/share/nginx/html/status.json
-              subPath: status.json
-              readOnly: true
 
       volumes:
         - name: nginx-cache
@@ -165,8 +83,6 @@ spec:
         - name: nginx-logs
           emptyDir: {}
         - name: nginx-run
-          emptyDir: {}
-        - name: html-status               # shared between init container and nginx
           emptyDir: {}
 
       topologySpreadConstraints:
