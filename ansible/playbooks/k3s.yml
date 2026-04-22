@@ -32,6 +32,11 @@
       retries: 30
       delay: 10
 
+    - name: Remove control-plane taint (single-node — node is also worker)
+      command: >
+        kubectl taint node --all node-role.kubernetes.io/control-plane:NoSchedule-
+      ignore_errors: true
+
     # ── Kubeconfig ────────────────────────────────────────────────────────────
 
     - name: Show node
