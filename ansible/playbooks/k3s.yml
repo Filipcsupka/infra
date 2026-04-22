@@ -62,6 +62,14 @@
         - traefik_repo.rc != 0
         - "'already exists' not in traefik_repo.stderr"
 
+    - name: Add Jetstack Helm repository
+      command: helm repo add jetstack https://charts.jetstack.io
+      register: jetstack_repo
+      changed_when: "'has been added' in jetstack_repo.stdout"
+      failed_when:
+        - jetstack_repo.rc != 0
+        - "'already exists' not in jetstack_repo.stderr"
+
     - name: Update Helm repositories
       command: helm repo update
 
@@ -88,6 +96,46 @@
         --values /tmp/traefik-values.yaml
         --wait
         --timeout 300s
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+    # ── cert-manager ─────────────────────────────────────────────────────────
+    # cert-manager issues Let's Encrypt certificates for Traefik Ingresses.
+
+    - name: Create cert-manager namespace
+      command: kubectl create namespace cert-manager --dry-run=client -o yaml
+      register: cert_manager_namespace
+      changed_when: false
+
+    - name: Apply cert-manager namespace
+      shell: kubectl apply -f -
+      args:
+        stdin: "{{ cert_manager_namespace.stdout }}"
+
+    - name: Copy cert-manager Helm values
+      copy:
+        src: ../helm-values/cert-manager.yaml
+        dest: /tmp/cert-manager-values.yaml
+        mode: "0644"
+
+    - name: Install or upgrade cert-manager
+      command: >
+        helm upgrade --install cert-manager jetstack/cert-manager
+        --namespace cert-manager
+        --values /tmp/cert-manager-values.yaml
+        --wait
+        --timeout 300s
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+    - name: Copy Let's Encrypt ClusterIssuer manifest
+      copy:
+        src: ../manifests/clusterissuer-letsencrypt-prod.yaml
+        dest: /tmp/clusterissuer-letsencrypt-prod.yaml
+        mode: "0644"
+
+    - name: Apply Let's Encrypt ClusterIssuer
+      command: kubectl apply -f /tmp/clusterissuer-letsencrypt-prod.yaml
       environment:
         KUBECONFIG: /etc/rancher/k3s/k3s.yaml
 
