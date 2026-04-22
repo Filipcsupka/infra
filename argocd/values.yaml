@@ -1,0 +1,70 @@
+dex:
+  enabled: false
+
+notifications:
+  enabled: false
+
+applicationset:
+  enabled: false
+
+server:
+  extraArgs:
+    - --insecure
+  service:
+    type: NodePort
+    nodePortHttp: 30080
+    nodePortHttps: 30443
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+repoServer:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+controller:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+redis:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+configs:
+  cm:
+    application.resourceTrackingMethod: annotation
+    resource.customizations.ignoreDifferences.apps_Deployment: |
+      jqPathExpressions:
+        - '.spec.template.spec.containers[].image'
+  rbac:
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, clusters,     *, *,   allow
+      p, role:admin, repositories, *, *,   allow
+      p, role:admin, projects,     *, *,   allow
+      p, role:admin, logs,         get, */*, allow
+      p, role:admin, exec,         create, */*, allow
+      p, role:readonly, applications, get, */*, allow
+      p, role:readonly, clusters,     get, *,   allow
+      p, role:readonly, repositories, get, *,   allow
+      g, Filipcsupka, role:admin

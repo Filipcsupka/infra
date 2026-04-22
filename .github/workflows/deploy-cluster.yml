@@ -97,24 +97,26 @@ jobs:
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
 
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add ArgoCD Helm repo
+        run: helm repo add argo https://argoproj.github.io/argo-helm && helm repo update
+
       - name: Create argocd namespace
         run: |
           kubectl --kubeconfig /tmp/kubeconfig.yaml \
             create namespace argocd --dry-run=client -o yaml | \
             kubectl --kubeconfig /tmp/kubeconfig.yaml apply -f -
 
-      - name: Patch ArgoCD URL
+      - name: Helm install ArgoCD
         run: |
-          sed -i "s|https://argocd.example.com|http://${{ needs.terraform.outputs.server_ip }}:30080|g" \
-            argocd/install/patches/argocd-cm.yaml
-
-      - name: Apply ArgoCD kustomization
-        run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -k argocd/install/
-
-      - name: Wait for ArgoCD server
-        run: |
-          kubectl --kubeconfig /tmp/kubeconfig.yaml \
-            rollout status deployment/argocd-server -n argocd --timeout=300s
+          helm upgrade --install argocd argo/argo-cd \
+            --kubeconfig /tmp/kubeconfig.yaml \
+            --namespace argocd \
+            --values argocd/values.yaml \
+            --set configs.cm.url=http://${{ needs.terraform.outputs.server_ip }}:30080 \
+            --wait --timeout 300s
 
       - name: Apply AppProject
         run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -f argocd/projects/default.yaml
