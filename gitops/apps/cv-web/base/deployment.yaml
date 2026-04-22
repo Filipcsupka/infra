@@ -25,6 +25,8 @@ spec:
       annotations:
         prometheus.io/scrape: "false"
     spec:
+      serviceAccountName: default
+
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
