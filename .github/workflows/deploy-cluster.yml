@@ -1,12 +1,6 @@
 name: Deploy Cluster
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'terraform/**'
-      - 'ansible/**'
-      - '.github/workflows/deploy-cluster.yml'
   workflow_dispatch:
 
 env:
@@ -65,7 +59,7 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/hetzner_ed25519
           chmod 600 /tmp/hetzner_ed25519
 
-      - name: Generate inventory from terraform output
+      - name: Generate inventory
         run: |
           cat > ansible/inventory/hosts.ini <<EOF
           [control_plane]
@@ -82,3 +76,48 @@ jobs:
           name: kubeconfig
           path: /tmp/kubeconfig.yaml
           retention-days: 1
+
+  argocd:
+    name: Bootstrap ArgoCD
+    runs-on: ubuntu-latest
+    needs: [terraform, k3s]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download kubeconfig
+        uses: actions/download-artifact@v4
+        with:
+          name: kubeconfig
+          path: /tmp
+
+      - name: Set kubeconfig permissions
+        run: chmod 600 /tmp/kubeconfig.yaml
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Create argocd namespace
+        run: |
+          kubectl --kubeconfig /tmp/kubeconfig.yaml \
+            create namespace argocd --dry-run=client -o yaml | \
+            kubectl --kubeconfig /tmp/kubeconfig.yaml apply -f -
+
+      - name: Patch ArgoCD URL
+        run: |
+          sed -i "s|https://argocd.example.com|http://${{ needs.terraform.outputs.server_ip }}:30080|g" \
+            argocd/install/patches/argocd-cm.yaml
+
+      - name: Apply ArgoCD kustomization
+        run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -k argocd/install/
+
+      - name: Wait for ArgoCD server
+        run: |
+          kubectl --kubeconfig /tmp/kubeconfig.yaml \
+            rollout status deployment/argocd-server -n argocd --timeout=300s
+
+      - name: Apply AppProject
+        run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -f argocd/projects/default.yaml
+
+      - name: Apply Applications
+        run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -f argocd/apps/

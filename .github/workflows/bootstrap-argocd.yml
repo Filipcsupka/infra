@@ -1,0 +1,66 @@
+name: Bootstrap ArgoCD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'argocd/**'
+      - '.github/workflows/bootstrap-argocd.yml'
+  workflow_dispatch:
+
+env:
+  TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+  TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
+  TF_VAR_server_type: cx23
+  TF_VAR_location: nbg1
+  TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+
+jobs:
+  bootstrap:
+    name: Apply ArgoCD manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.7"
+          terraform_wrapper: false
+
+      - name: Get server IP from remote state
+        working-directory: terraform
+        run: |
+          terraform init -input=false
+          echo "SERVER_IP=$(terraform output -raw control_plane_public_ip)" >> $GITHUB_ENV
+
+      - name: Write kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Create argocd namespace
+        run: |
+          kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Patch ArgoCD URL
+        run: |
+          sed -i "s|https://argocd.example.com|http://${SERVER_IP}:30080|g" \
+            argocd/install/patches/argocd-cm.yaml
+
+      - name: Apply ArgoCD kustomization
+        run: kubectl apply -k argocd/install/
+
+      - name: Wait for ArgoCD server
+        run: kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
+
+      - name: Apply AppProject
+        run: kubectl apply -f argocd/projects/default.yaml
+
+      - name: Apply Applications
+        run: kubectl apply -f argocd/apps/

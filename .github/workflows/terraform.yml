@@ -1,0 +1,44 @@
+name: Terraform
+
+on:
+  workflow_dispatch:
+
+env:
+  TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+  TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
+  TF_VAR_server_type: cx23
+  TF_VAR_location: nbg1
+  TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+
+jobs:
+  terraform:
+    name: Provision Infrastructure
+    runs-on: ubuntu-latest
+    outputs:
+      server_ip: ${{ steps.outputs.outputs.server_ip }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.7"
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get server IP
+        id: outputs
+        working-directory: terraform
+        run: echo "server_ip=$(terraform output -raw control_plane_public_ip)" >> $GITHUB_OUTPUT
