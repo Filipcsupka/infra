@@ -11,5 +11,10 @@ ingressClass:
 ports:
   web:
     hostPort: 80
+    redirections:
+      entryPoint:
+        to: websecure
+        scheme: https
+        permanent: true
   websecure:
     hostPort: 443
