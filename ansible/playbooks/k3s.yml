@@ -93,16 +93,34 @@
         dest: /tmp/traefik-values.yaml
         mode: "0644"
 
+    - name: Force-delete any stuck Traefik pod
+      command: kubectl delete pod -n traefik -l app.kubernetes.io/name=traefik --grace-period=5
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: delete_pod
+      changed_when: "'deleted' in delete_pod.stdout or 'no resources found' not in delete_pod.stderr"
+      failed_when: false
+
+    - name: Wait for Traefik pod to fully terminate
+      command: kubectl get pod -n traefik -l app.kubernetes.io/name=traefik
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      register: pod_check
+      until: "'No resources found' in pod_check.stderr or pod_check.stdout_lines | length == 1"
+      retries: 12
+      delay: 5
+      failed_when: false
+
     - name: Install or upgrade Traefik ingress controller
       command: >
         helm upgrade --install traefik traefik/traefik
         --namespace traefik
         --values /tmp/traefik-values.yaml
         --wait
-        --timeout 300s
+        --timeout 600s
       environment:
         KUBECONFIG: /etc/rancher/k3s/k3s.yaml
-      async: 600
+      async: 700
       poll: 15
 
     # ── cert-manager ─────────────────────────────────────────────────────────
