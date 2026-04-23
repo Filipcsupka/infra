@@ -4,3 +4,4 @@ metadata:
   name: vevsdesign
   labels:
     app.kubernetes.io/name: vevsdesign
+    environment: production

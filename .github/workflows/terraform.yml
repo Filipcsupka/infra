@@ -15,12 +15,31 @@ env:
   TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
 
 jobs:
-  terraform:
-    name: Provision Infrastructure
+  plan:
+    name: Plan Infrastructure
     runs-on: ubuntu-latest
-    outputs:
-      server_ip: ${{ steps.outputs.outputs.server_ip }}
+    steps:
+      - uses: actions/checkout@v4
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.7"
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan
+
+  apply:
+    name: Apply Infrastructure
+    runs-on: ubuntu-latest
+    needs: plan
+    if: github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
 

@@ -2,47 +2,38 @@ resource "hcloud_firewall" "k8s" {
   name   = local.firewall_name
   labels = local.common_labels
 
-  # SSH — restrict source_ips to your IP in production
+  # SSH — open to world; security relies on key-based auth (no password login)
   rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "22"
-    source_ips = ["0.0.0.0/0", "::/0"]
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "22"
+    source_ips  = ["0.0.0.0/0", "::/0"]
     description = "SSH"
   }
 
-  # Kubernetes API server
+  # Kubernetes API server — open for now (to keep kubeconfig working from anywhere)
   rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "6443"
-    source_ips = ["0.0.0.0/0", "::/0"]
-    description = "K8s API server"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "6443"
+    source_ips  = ["0.0.0.0/0", "::/0"]
+    description = "K8s API"
   }
 
-  # HTTP / HTTPS ingress
+  # HTTP / HTTPS ingress — open to the world for web apps
   rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "80"
-    source_ips = ["0.0.0.0/0", "::/0"]
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "80"
+    source_ips  = ["0.0.0.0/0", "::/0"]
     description = "HTTP"
   }
 
   rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "443"
-    source_ips = ["0.0.0.0/0", "::/0"]
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "443"
+    source_ips  = ["0.0.0.0/0", "::/0"]
     description = "HTTPS"
-  }
-
-  # NodePort range (optional, for direct service access)
-  rule {
-    direction  = "in"
-    protocol   = "tcp"
-    port       = "30000-32767"
-    source_ips = ["0.0.0.0/0", "::/0"]
-    description = "NodePort services"
   }
 }

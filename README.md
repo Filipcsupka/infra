@@ -128,7 +128,38 @@ For team use or to avoid losing state, switch to Hetzner Object Storage.
   git config --global user.email "your@email.com"
   ```
 - [ ] Verify `.gitignore` covers `kubeconfig.yaml`, `terraform.tfvars`, and `.terraform/`
-- [ ] Review firewall rules in `terraform/firewall.tf` — restrict SSH `source_ips` to your own IP in production
+- [ ] Review firewall rules in `terraform/firewall.tf` (currently SSH and K8s API are open for mobility)
+
+### 9 — Future hardening: Tailscale for kubeconfig from anywhere
+
+Current state keeps port `6443` public so `kubeconfig` works from any location.
+If you want secure global access later, move Kubernetes API access to Tailscale and then close public `6443`.
+
+- [ ] Install and authenticate Tailscale on the cluster node:
+  ```bash
+  curl -fsSL https://tailscale.com/install.sh | sh
+  sudo tailscale up --ssh
+  tailscale ip -4
+  ```
+- [ ] Add the Tailscale IP as an extra Kubernetes API TLS SAN in `ansible/playbooks/k3s.yml`:
+  - Keep existing `--tls-san={{ ansible_host }}`
+  - Add `--tls-san=<TAILSCALE_IPV4>`
+- [ ] Re-run Ansible to apply k3s config changes:
+  ```bash
+  ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/k3s.yml
+  ```
+- [ ] Update local kubeconfig server endpoint from public IP to the node Tailscale IP:
+  - from: `https://<public-ip>:6443`
+  - to: `https://<tailscale-ip>:6443`
+- [ ] Validate API access over Tailscale:
+  ```bash
+  KUBECONFIG=kubeconfig.yaml kubectl get nodes
+  ```
+- [ ] After validation, harden firewall by restricting or closing public `6443` in `terraform/firewall.tf`.
+
+Notes:
+- Keep ports `80` and `443` public so websites stay reachable from the internet.
+- If you use Tailscale MagicDNS, you can use node name instead of raw Tailscale IP in kubeconfig.
 
 ---
 

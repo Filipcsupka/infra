@@ -8,8 +8,10 @@ spec:
   sourceRepos:
     - https://github.com/Filipcsupka/infra
   destinations:
-    - namespace: "*"
+    - namespace: cv
+      server: https://kubernetes.default.svc
+    - namespace: vevsdesign
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
-    - group: "*"
-      kind: "*"
+    - group: ""
+      kind: Namespace
