@@ -37,7 +37,11 @@
     - name: Remove control-plane taint (single-node — node is also worker)
       command: >
         kubectl taint node --all node-role.kubernetes.io/control-plane:NoSchedule-
-      ignore_errors: true
+      register: control_plane_taint
+      changed_when: "'untainted' in control_plane_taint.stdout"
+      failed_when:
+        - control_plane_taint.rc != 0
+        - "'not found' not in control_plane_taint.stderr"
 
     # ── Traefik ingress ───────────────────────────────────────────────────────
     # k3s bundled Traefik and ServiceLB are disabled above. Install Traefik
@@ -98,6 +102,8 @@
         --timeout 300s
       environment:
         KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      async: 600
+      poll: 15
 
     # ── cert-manager ─────────────────────────────────────────────────────────
     # cert-manager issues Let's Encrypt certificates for Traefik Ingresses.
@@ -127,6 +133,8 @@
         --timeout 300s
       environment:
         KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+      async: 600
+      poll: 15
 
     - name: Copy Let's Encrypt ClusterIssuer manifest
       copy:
