@@ -5,6 +5,7 @@ metadata:
   namespace: vevsdesign
   labels:
     app: vevsdesign
+    app.kubernetes.io/name: vevsdesign
 spec:
   replicas: 1
   selector:
@@ -32,22 +33,21 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
-          envFrom:
-            - configMapRef:
-                name: vevsdesign-config
+              protocol: TCP
           resources:
             requests:
               cpu: "50m"
-              memory: "64Mi"
+              memory: "32Mi"
             limits:
               cpu: "200m"
-              memory: "128Mi"
+              memory: "64Mi"
           livenessProbe:
             httpGet:
               path: /healthz
               port: 8080
             initialDelaySeconds: 10
             periodSeconds: 30
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /healthz
@@ -60,12 +60,21 @@ spec:
             capabilities:
               drop: ["ALL"]
           volumeMounts:
-            - name: caddy-data
-              mountPath: /data
-            - name: caddy-config
-              mountPath: /config
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-logs
+              mountPath: /var/log/nginx
+            - name: nginx-run
+              mountPath: /var/run
+            - name: nginx-tmp
+              mountPath: /tmp
       volumes:
-        - name: caddy-data
+        - name: nginx-cache
           emptyDir: {}
-        - name: caddy-config
+        - name: nginx-logs
           emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        - name: nginx-tmp
+          emptyDir: {}
+      terminationGracePeriodSeconds: 30
