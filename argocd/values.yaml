@@ -52,9 +52,6 @@ redis:
 configs:
   cm:
     application.resourceTrackingMethod: annotation
-    resource.customizations.ignoreDifferences.apps_Deployment: |
-      jqPathExpressions:
-        - '.spec.template.spec.containers[].image'
   rbac:
     policy.default: role:readonly
     policy.csv: |
