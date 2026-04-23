@@ -8,12 +8,3 @@ images:
 - name: ghcr.io/filipcsupka/filip-cv
   newName: ghcr.io/filipcsupka/filip-cv
   newTag: sha-73ff8c3
-
-patches:
-- patch: |-
-    - op: replace
-      path: /spec/replicas
-      value: 2
-  target:
-    kind: Deployment
-    name: filip-cv
