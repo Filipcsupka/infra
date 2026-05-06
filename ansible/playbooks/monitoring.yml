@@ -117,81 +117,70 @@
 
     # ── Initial admin setup ───────────────────────────────────────────────────
 
-    - name: Check if setup already done
-      uri:
-        url: "{{ uptime_kuma_url }}/api/setup-required"
-        method: GET
-        status_code: [200]
-      register: setup_check
+    # ── Monitor setup via uptime-kuma-api (Socket.IO, v2 compatible) ──────────
 
-    - name: Create initial admin user
-      uri:
-        url: "{{ uptime_kuma_url }}/api/setup"
-        method: POST
-        body_format: json
-        body:
-          username: "{{ uptime_kuma_user }}"
-          password: "{{ uptime_kuma_pass }}"
-        status_code: [200, 201, 409]
-      when: setup_check.json.setupRequired | default(false)
+    - name: Install uptime-kuma-api Python package
+      pip:
+        name: uptime-kuma-api
+        state: present
+        executable: pip3
+
+    - name: Write monitor setup script
+      copy:
+        dest: /tmp/kuma_setup.py
+        mode: "0700"
+        content: |
+          import os, sys
+          from uptime_kuma_api import UptimeKumaApi, MonitorType
+
+          url  = os.environ["KUMA_URL"]
+          user = os.environ["KUMA_USER"]
+          pwd  = os.environ["KUMA_PASS"]
+
+          monitors = [
+          {% for m in monitors %}
+              {"name": "{{ m.name }}", "url": "{{ m.url }}", "type": "{{ m.type | default('http') }}", "ignoreTls": {{ m.extra.ignoreTls | default(false) | lower }}},
+          {% endfor %}
+          ]
+
+          api = UptimeKumaApi(url)
+          try:
+              try:
+                  api.setup(user, pwd)
+              except Exception:
+                  pass  # already set up
+              api.login(user, pwd)
+              existing = {m["name"] for m in api.get_monitors()}
+              for m in monitors:
+                  if m["name"] not in existing:
+                      api.add_monitor(
+                          type=MonitorType.HTTP,
+                          name=m["name"],
+                          url=m["url"],
+                          interval=60,
+                          maxretries=3,
+                          ignoreTls=m["ignoreTls"],
+                      )
+                      print(f"created: {m['name']}")
+                  else:
+                      print(f"exists:  {m['name']}")
+          finally:
+              api.disconnect()
+
+    - name: Run monitor setup
+      command: python3 /tmp/kuma_setup.py
+      environment:
+        KUMA_URL: "{{ uptime_kuma_url }}"
+        KUMA_USER: "{{ uptime_kuma_user }}"
+        KUMA_PASS: "{{ uptime_kuma_pass }}"
       no_log: true
+      register: kuma_setup_result
 
-    # ── Login + get token ─────────────────────────────────────────────────────
+    - name: Print monitor setup output
+      debug:
+        msg: "{{ kuma_setup_result.stdout_lines }}"
 
-    - name: Login to Uptime Kuma API
-      uri:
-        url: "{{ uptime_kuma_url }}/api/login"
-        method: POST
-        body_format: json
-        body:
-          username: "{{ uptime_kuma_user }}"
-          password: "{{ uptime_kuma_pass }}"
-        status_code: 200
-      register: login_response
-      no_log: true
-
-    - name: Set auth token
-      set_fact:
-        kuma_token: "{{ login_response.json.token }}"
-      no_log: true
-
-    # ── Monitors ──────────────────────────────────────────────────────────────
-
-    - name: Get existing monitors
-      uri:
-        url: "{{ uptime_kuma_url }}/api/monitors"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ kuma_token }}"
-        status_code: 200
-      register: existing_monitors
-
-    - name: Build list of existing monitor names
-      set_fact:
-        existing_monitor_names: "{{ existing_monitors.json | map(attribute='name') | list }}"
-
-    - name: Create monitors
-      uri:
-        url: "{{ uptime_kuma_url }}/api/monitors"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ kuma_token }}"
-        body_format: json
-        body:
-          type: "{{ item.type | default('http') }}"
-          name: "{{ item.name }}"
-          url: "{{ item.url }}"
-          interval: 60
-          retryInterval: 60
-          maxretries: 3
-          ignoreTls: "{{ item.extra.ignoreTls | default(false) }}"
-          keyword: "{{ item.extra.keyword | default('') }}"
-          upsideDown: false
-          active: true
-        status_code:
-          - 200
-          - 201
-      loop: "{{ monitors }}"
-      when: item.name not in existing_monitor_names
-      loop_control:
-        label: "{{ item.name }}"
+    - name: Remove setup script
+      file:
+        path: /tmp/kuma_setup.py
+        state: absent

@@ -21,3 +21,9 @@ ports:
           permanent: true
   websecure:
     hostPort: 443
+
+providers:
+  kubernetesIngress:
+    allowExternalNameServices: true
+  kubernetesCRD:
+    allowExternalNameServices: true
