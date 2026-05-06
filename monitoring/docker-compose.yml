@@ -1,0 +1,20 @@
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2.3.2
+    container_name: uptime-kuma
+    restart: unless-stopped
+    ports:
+      # 0.0.0.0 required — k3s pods reach host via node IP, not loopback
+      # port 3001 is NOT in Hetzner firewall rules → not reachable from internet
+      # external access: Traefik ingress → status.filipcsupka.online
+      - "0.0.0.0:3001:3001"
+    volumes:
+      - uptime-kuma-data:/app/data
+      # Docker socket — enables container status monitors
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    extra_hosts:
+      # host.docker.internal → host gateway so monitors can reach k3s/NodePorts
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  uptime-kuma-data:

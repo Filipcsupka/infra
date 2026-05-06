@@ -1,0 +1,197 @@
+---
+- name: Deploy Uptime Kuma monitoring (Docker, outside k3s)
+  hosts: control_plane
+  become: true
+
+  vars:
+    uptime_kuma_dir: /opt/monitoring
+    uptime_kuma_url: "http://localhost:3001"
+    uptime_kuma_user: "{{ lookup('env', 'UPTIME_KUMA_USERNAME') | default('admin') }}"
+    uptime_kuma_pass: "{{ lookup('env', 'UPTIME_KUMA_PASSWORD') }}"
+
+    monitors:
+      # ── Public sites ──────────────────────────────────────────────────────
+      - name: "vevsdesign.sk"
+        type: http
+        url: "https://vevsdesign.sk"
+      - name: "www.vevsdesign.sk"
+        type: http
+        url: "https://www.vevsdesign.sk"
+      - name: "filipcsupka.online"
+        type: http
+        url: "https://filipcsupka.online"
+      - name: "www.filipcsupka.online"
+        type: http
+        url: "https://www.filipcsupka.online"
+      # ── k8s / infra ───────────────────────────────────────────────────────
+      - name: "k3s API"
+        type: http
+        url: "https://host.docker.internal:6443/healthz"
+        extra:
+          ignoreTls: true
+          keyword: "ok"
+      - name: "ArgoCD"
+        type: http
+        url: "http://host.docker.internal:30080"
+      - name: "Traefik"
+        type: http
+        url: "http://host.docker.internal:80"
+
+  tasks:
+    # ── Docker ────────────────────────────────────────────────────────────────
+
+    - name: Install Docker dependencies
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: true
+
+    - name: Add Docker GPG key
+      shell: |
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+          -o /etc/apt/keyrings/docker.asc
+        chmod a+r /etc/apt/keyrings/docker.asc
+      args:
+        creates: /etc/apt/keyrings/docker.asc
+
+    - name: Add Docker apt repository
+      shell: |
+        echo \
+          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+          https://download.docker.com/linux/ubuntu \
+          $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+          > /etc/apt/sources.list.d/docker.list
+      args:
+        creates: /etc/apt/sources.list.d/docker.list
+
+    - name: Install Docker Engine + Compose plugin
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+
+    - name: Enable and start Docker
+      systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    # ── Uptime Kuma ───────────────────────────────────────────────────────────
+
+    - name: Create monitoring directory
+      file:
+        path: "{{ uptime_kuma_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copy docker-compose.yml
+      copy:
+        src: ../../monitoring/docker-compose.yml
+        dest: "{{ uptime_kuma_dir }}/docker-compose.yml"
+        mode: "0644"
+
+    - name: Start Uptime Kuma
+      command: docker compose up -d
+      args:
+        chdir: "{{ uptime_kuma_dir }}"
+      register: compose_up
+      changed_when: "'Started' in compose_up.stdout or 'Created' in compose_up.stdout"
+
+    - name: Wait for Uptime Kuma to be ready
+      uri:
+        url: "{{ uptime_kuma_url }}/api/status"
+        status_code: 200
+      register: kuma_health
+      until: kuma_health.status == 200
+      retries: 30
+      delay: 5
+
+    # ── Initial admin setup ───────────────────────────────────────────────────
+
+    - name: Check if setup already done
+      uri:
+        url: "{{ uptime_kuma_url }}/api/setup-required"
+        method: GET
+        status_code: [200]
+      register: setup_check
+
+    - name: Create initial admin user
+      uri:
+        url: "{{ uptime_kuma_url }}/api/setup"
+        method: POST
+        body_format: json
+        body:
+          username: "{{ uptime_kuma_user }}"
+          password: "{{ uptime_kuma_pass }}"
+        status_code: [200, 201, 409]
+      when: setup_check.json.setupRequired | default(false)
+      no_log: true
+
+    # ── Login + get token ─────────────────────────────────────────────────────
+
+    - name: Login to Uptime Kuma API
+      uri:
+        url: "{{ uptime_kuma_url }}/api/login"
+        method: POST
+        body_format: json
+        body:
+          username: "{{ uptime_kuma_user }}"
+          password: "{{ uptime_kuma_pass }}"
+        status_code: 200
+      register: login_response
+      no_log: true
+
+    - name: Set auth token
+      set_fact:
+        kuma_token: "{{ login_response.json.token }}"
+      no_log: true
+
+    # ── Monitors ──────────────────────────────────────────────────────────────
+
+    - name: Get existing monitors
+      uri:
+        url: "{{ uptime_kuma_url }}/api/monitors"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ kuma_token }}"
+        status_code: 200
+      register: existing_monitors
+
+    - name: Build list of existing monitor names
+      set_fact:
+        existing_monitor_names: "{{ existing_monitors.json | map(attribute='name') | list }}"
+
+    - name: Create monitors
+      uri:
+        url: "{{ uptime_kuma_url }}/api/monitors"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ kuma_token }}"
+        body_format: json
+        body:
+          type: "{{ item.type | default('http') }}"
+          name: "{{ item.name }}"
+          url: "{{ item.url }}"
+          interval: 60
+          retryInterval: 60
+          maxretries: 3
+          ignoreTls: "{{ item.extra.ignoreTls | default(false) }}"
+          keyword: "{{ item.extra.keyword | default('') }}"
+          upsideDown: false
+          active: true
+        status_code:
+          - 200
+          - 201
+      loop: "{{ monitors }}"
+      when: item.name not in existing_monitor_names
+      loop_control:
+        label: "{{ item.name }}"

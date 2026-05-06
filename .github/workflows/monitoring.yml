@@ -1,0 +1,58 @@
+name: Monitoring
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'monitoring/**'
+      - 'ansible/playbooks/monitoring.yml'
+  workflow_dispatch:
+
+env:
+  TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+  TF_VAR_ssh_key_name: ${{ secrets.SSH_KEY_NAME }}
+  TF_VAR_server_type: cx23
+  TF_VAR_location: nbg1
+  TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
+
+jobs:
+  deploy-monitoring:
+    name: Deploy Uptime Kuma
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.7"
+          terraform_wrapper: false
+
+      - name: Get server IP from remote state
+        working-directory: terraform
+        run: |
+          terraform init -input=false
+          echo "SERVER_IP=$(terraform output -raw control_plane_public_ip)" >> $GITHUB_ENV
+
+      - name: Install Ansible
+        run: pip install --quiet ansible
+
+      - name: Write SSH private key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > /tmp/hetzner_ed25519
+          chmod 600 /tmp/hetzner_ed25519
+
+      - name: Generate inventory
+        run: |
+          cat > ansible/inventory/hosts.ini <<EOF
+          [control_plane]
+          ${SERVER_IP} ansible_user=root ansible_ssh_private_key_file=/tmp/hetzner_ed25519
+          EOF
+
+      - name: Run monitoring playbook
+        working-directory: ansible
+        env:
+          UPTIME_KUMA_USERNAME: ${{ secrets.UPTIME_KUMA_USERNAME }}
+          UPTIME_KUMA_PASSWORD: ${{ secrets.UPTIME_KUMA_PASSWORD }}
+        run: ansible-playbook playbooks/monitoring.yml
