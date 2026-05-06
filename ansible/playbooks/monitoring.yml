@@ -5,37 +5,6 @@
 
   vars:
     uptime_kuma_dir: /opt/monitoring
-    uptime_kuma_url: "http://localhost:3001"
-    uptime_kuma_user: "{{ lookup('env', 'UPTIME_KUMA_USERNAME') | default('admin') }}"
-    uptime_kuma_pass: "{{ lookup('env', 'UPTIME_KUMA_PASSWORD') }}"
-
-    monitors:
-      # ── Public sites ──────────────────────────────────────────────────────
-      - name: "vevsdesign.sk"
-        type: http
-        url: "https://vevsdesign.sk"
-      - name: "www.vevsdesign.sk"
-        type: http
-        url: "https://www.vevsdesign.sk"
-      - name: "filipcsupka.online"
-        type: http
-        url: "https://filipcsupka.online"
-      - name: "www.filipcsupka.online"
-        type: http
-        url: "https://www.filipcsupka.online"
-      # ── k8s / infra ───────────────────────────────────────────────────────
-      - name: "k3s API"
-        type: http
-        url: "https://host.docker.internal:6443/healthz"
-        extra:
-          ignoreTls: true
-          keyword: "ok"
-      - name: "ArgoCD"
-        type: http
-        url: "http://host.docker.internal:30080"
-      - name: "Traefik"
-        type: http
-        url: "http://host.docker.internal:80"
 
   tasks:
     # ── Docker ────────────────────────────────────────────────────────────────
@@ -115,78 +84,6 @@
       retries: 30
       delay: 5
 
-    # ── Initial admin setup ───────────────────────────────────────────────────
-
-    # ── Monitor setup via uptime-kuma-api (Socket.IO, v2 compatible) ──────────
-
-    - name: Install pip3
-      apt:
-        name: python3-pip
-        state: present
-        update_cache: false
-
-    - name: Install uptime-kuma-api Python package
-      pip:
-        name: uptime-kuma-api
-        state: present
-        executable: pip3
-        extra_args: --break-system-packages
-
-    - name: Write monitor setup script
-      copy:
-        dest: /tmp/kuma_setup.py
-        mode: "0700"
-        content: |
-          import os, sys
-          from uptime_kuma_api import UptimeKumaApi, MonitorType
-
-          url  = os.environ["KUMA_URL"]
-          user = os.environ["KUMA_USER"]
-          pwd  = os.environ["KUMA_PASS"]
-
-          monitors = [
-          {% for m in monitors %}
-              {"name": "{{ m.name }}", "url": "{{ m.url }}", "type": "{{ m.type | default('http') }}", "ignoreTls": {{ m.extra.ignoreTls | default(false) | ternary('True', 'False') }}},
-          {% endfor %}
-          ]
-
-          api = UptimeKumaApi(url)
-          try:
-              try:
-                  api.setup(user, pwd)
-              except Exception:
-                  pass  # already set up
-              api.login(user, pwd)
-              existing = {m["name"] for m in api.get_monitors()}
-              for m in monitors:
-                  if m["name"] not in existing:
-                      api.add_monitor(
-                          type=MonitorType.HTTP,
-                          name=m["name"],
-                          url=m["url"],
-                          interval=60,
-                          maxretries=3,
-                          ignoreTls=m["ignoreTls"],
-                      )
-                      print(f"created: {m['name']}")
-                  else:
-                      print(f"exists:  {m['name']}")
-          finally:
-              api.disconnect()
-
-    - name: Run monitor setup
-      command: python3 /tmp/kuma_setup.py
-      environment:
-        KUMA_URL: "{{ uptime_kuma_url }}"
-        KUMA_USER: "{{ uptime_kuma_user }}"
-        KUMA_PASS: "{{ uptime_kuma_pass }}"
-      register: kuma_setup_result
-
-    - name: Print monitor setup output
+    - name: Print access info
       debug:
-        msg: "{{ kuma_setup_result.stdout_lines }}"
-
-    - name: Remove setup script
-      file:
-        path: /tmp/kuma_setup.py
-        state: absent
+        msg: "Uptime Kuma running at http://{{ ansible_host }}:3001 — see monitoring/README.md for first-time setup"
