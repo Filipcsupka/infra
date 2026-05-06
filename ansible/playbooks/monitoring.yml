@@ -180,7 +180,6 @@
         KUMA_URL: "{{ uptime_kuma_url }}"
         KUMA_USER: "{{ uptime_kuma_user }}"
         KUMA_PASS: "{{ uptime_kuma_pass }}"
-      no_log: true
       register: kuma_setup_result
 
     - name: Print monitor setup output
