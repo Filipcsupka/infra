@@ -119,11 +119,18 @@
 
     # ── Monitor setup via uptime-kuma-api (Socket.IO, v2 compatible) ──────────
 
+    - name: Install pip3
+      apt:
+        name: python3-pip
+        state: present
+        update_cache: false
+
     - name: Install uptime-kuma-api Python package
       pip:
         name: uptime-kuma-api
         state: present
         executable: pip3
+        extra_args: --break-system-packages
 
     - name: Write monitor setup script
       copy:
