@@ -146,7 +146,7 @@
 
           monitors = [
           {% for m in monitors %}
-              {"name": "{{ m.name }}", "url": "{{ m.url }}", "type": "{{ m.type | default('http') }}", "ignoreTls": {{ m.extra.ignoreTls | default(false) | lower }}},
+              {"name": "{{ m.name }}", "url": "{{ m.url }}", "type": "{{ m.type | default('http') }}", "ignoreTls": {{ m.extra.ignoreTls | default(false) | ternary('True', 'False') }}},
           {% endfor %}
           ]
 
