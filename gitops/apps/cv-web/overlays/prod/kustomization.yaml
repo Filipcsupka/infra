@@ -7,4 +7,4 @@ resources:
 images:
 - name: ghcr.io/filipcsupka/filip-cv
   newName: ghcr.io/filipcsupka/filip-cv
-  newTag: sha-6fd0eff
+  newTag: sha-8fdcac6
