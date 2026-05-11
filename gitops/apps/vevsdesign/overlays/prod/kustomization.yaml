@@ -7,4 +7,4 @@ resources:
 images:
 - name: ghcr.io/filipcsupka/vevsdesign
   newName: ghcr.io/filipcsupka/vevsdesign
-  newTag: sha-0ec5c4e
+  newTag: sha-b69fdc9
