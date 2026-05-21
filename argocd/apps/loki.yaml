@@ -1,0 +1,109 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+spec:
+  project: apps
+  source:
+    repoURL: https://grafana.github.io/helm-charts
+    chart: loki
+    targetRevision: "*"
+    helm:
+      releaseName: loki
+      values: |
+        deploymentMode: SingleBinary
+
+        loki:
+          auth_enabled: false
+
+          commonConfig:
+            replication_factor: 1
+
+          storage:
+            type: s3
+            bucketNames:
+              chunks: loki
+              ruler: loki
+              admin: loki
+            s3:
+              endpoint: http://minio.monitoring.svc.cluster.local:9000
+              region: us-east-1
+              accessKeyId: minioadmin
+              secretAccessKey: minioadmin123  # TODO: SealedSecret
+              s3ForcePathStyle: true
+              insecure: true
+
+          schemaConfig:
+            configs:
+              - from: "2024-01-01"
+                store: tsdb
+                object_store: s3
+                schema: v13
+                index:
+                  prefix: loki_index_
+                  period: 24h
+
+          limits_config:
+            retention_period: 24h
+            ingestion_rate_mb: 4
+            ingestion_burst_size_mb: 8
+
+          compactor:
+            retention_enabled: true
+            delete_request_store: s3
+
+        singleBinary:
+          replicas: 1
+
+          nodeSelector:
+            accelerator: nvidia
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+
+          persistence:
+            enabled: true
+            size: 2Gi  # WAL + local caches
+
+        # Disable unused multi-process components
+        backend:
+          replicas: 0
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+
+        gateway:
+          enabled: false
+
+        # Disable self-monitoring / canary
+        monitoring:
+          selfMonitoring:
+            enabled: false
+            grafanaAgent:
+              installOperator: false
+          lokiCanary:
+            enabled: false
+
+        test:
+          enabled: false
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

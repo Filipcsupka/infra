@@ -1,0 +1,66 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio
+  namespace: argocd
+spec:
+  project: apps
+  source:
+    repoURL: https://charts.min.io/
+    chart: minio
+    targetRevision: "*"
+    helm:
+      releaseName: minio
+      values: |
+        mode: standalone
+
+        nodeSelector:
+          accelerator: nvidia
+        tolerations:
+          - key: nvidia.com/gpu
+            operator: Exists
+            effect: NoSchedule
+
+        rootUser: "minioadmin"
+        rootPassword: "minioadmin123"  # TODO: SealedSecret
+
+        persistence:
+          enabled: true
+          size: 10Gi
+
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
+
+        service:
+          type: ClusterIP
+          port: 9000
+
+        consoleService:
+          type: ClusterIP
+          port: 9001
+
+        # Auto-create loki bucket on startup
+        buckets:
+          - name: loki
+            policy: none
+            purge: false
+
+        # Disable features not needed
+        metrics:
+          serviceMonitor:
+            enabled: false
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,200 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus-stack
+  namespace: argocd
+spec:
+  project: apps
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: "*"
+    helm:
+      releaseName: monitoring
+      values: |
+        fullnameOverride: monitoring
+
+        # ── Grafana ──────────────────────────────────────────────────────────
+        grafana:
+          enabled: true
+          adminPassword: "prom-operator"  # TODO: SealedSecret
+
+          nodeSelector:
+            accelerator: nvidia
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+
+          ingress:
+            enabled: true
+            ingressClassName: traefik
+            annotations:
+              cert-manager.io/cluster-issuer: letsencrypt-prod
+            hosts:
+              - grafana.filipcsupka.online
+            tls:
+              - secretName: grafana-tls
+                hosts:
+                  - grafana.filipcsupka.online
+
+          grafana.ini:
+            server:
+              root_url: https://grafana.filipcsupka.online
+
+          sidecar:
+            dashboards:
+              enabled: true
+              label: grafana_dashboard
+              searchNamespace: ALL
+
+          additionalDataSources:
+            - name: Loki
+              type: loki
+              url: http://loki.monitoring.svc.cluster.local:3100
+              access: proxy
+              isDefault: false
+
+          # Auto-provision dashboards from grafana.com
+          dashboards:
+            default:
+              dcgm-exporter:
+                gnetId: 12239
+                revision: 2
+                datasource: Prometheus
+              k8s-views-global:
+                gnetId: 15757
+                revision: 37
+                datasource: Prometheus
+              k8s-views-nodes:
+                gnetId: 15759
+                revision: 29
+                datasource: Prometheus
+              k8s-views-pods:
+                gnetId: 15760
+                revision: 28
+                datasource: Prometheus
+              node-exporter-full:
+                gnetId: 1860
+                revision: 37
+                datasource: Prometheus
+              loki-logs:
+                gnetId: 13639
+                revision: 2
+                datasource: Loki
+
+          dashboardProviders:
+            dashboardproviders.yaml:
+              apiVersion: 1
+              providers:
+                - name: default
+                  orgId: 1
+                  folder: ''
+                  type: file
+                  disableDeletion: false
+                  editable: true
+                  options:
+                    path: /var/lib/grafana/dashboards/default
+
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+
+        # ── Prometheus ───────────────────────────────────────────────────────
+        prometheus:
+          prometheusSpec:
+            nodeSelector:
+              accelerator: nvidia
+            tolerations:
+              - key: nvidia.com/gpu
+                operator: Exists
+                effect: NoSchedule
+
+            retention: 1d
+            retentionSize: "3GB"
+
+            # Scrape ServiceMonitors/PodMonitors from all namespaces
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 5Gi
+
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+
+        # ── AlertManager — disabled ───────────────────────────────────────────
+        alertmanager:
+          enabled: false
+
+        # ── Prometheus Operator ───────────────────────────────────────────────
+        prometheusOperator:
+          nodeSelector:
+            accelerator: nvidia
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+
+        # ── kube-state-metrics ────────────────────────────────────────────────
+        kube-state-metrics:
+          nodeSelector:
+            accelerator: nvidia
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+
+        # ── node-exporter (DaemonSet — both nodes) ────────────────────────────
+        prometheus-node-exporter:
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

@@ -221,6 +221,81 @@ resources:
 
 ---
 
+## Monitoring stack (GPU node POC)
+
+All monitoring components run on the GPU node (`k3sgpu`, `accelerator: nvidia`).
+Every ArgoCD app in `argocd/apps/` is auto-applied by GitHub Actions on push to `main` — no manual steps after push.
+
+### Apps
+
+| ArgoCD app | Chart | Namespace | Purpose |
+|---|---|---|---|
+| `prometheus-stack` | `kube-prometheus-stack` | `monitoring` | Prometheus + Grafana + node-exporter + kube-state-metrics |
+| `dcgm-exporter` | `nvidia/dcgm-exporter` | `monitoring` | NVIDIA GPU metrics (RTX 2070) |
+| `minio` | `minio/minio` | `monitoring` | S3-compatible storage for Loki |
+| `loki` | `grafana/loki` | `monitoring` | Log aggregation, single-binary mode |
+| `alloy` | `grafana/alloy` | `monitoring` | Log collection DaemonSet (all nodes → Loki) |
+| `sealed-secrets` | `sealed-secrets` | `kube-system` | SealedSecret controller |
+| `monitoring-secrets` | kustomize | `monitoring` | Decrypted secrets from `gitops/sealed-secrets/` |
+| `monitoring` | kustomize | `monitoring` | Uptime Kuma proxy (existing, unchanged) |
+
+### Grafana
+
+URL: `https://grafana.filipcsupka.online`  
+Default credentials: `admin` / `prom-operator` ← **change after first login**
+
+DNS: Add Cloudflare A record `grafana` → `178.104.235.97` (same as `ai`).
+
+Pre-provisioned dashboards (auto-pulled from grafana.com on startup):
+
+| ID | Dashboard |
+|---|---|
+| 12239 | NVIDIA DCGM Exporter (GPU util, temp, VRAM, power) |
+| 15757 | Kubernetes — Global view |
+| 15759 | Kubernetes — Nodes |
+| 15760 | Kubernetes — Pods |
+| 1860 | Node Exporter Full |
+| 13639 | Loki log explorer |
+
+### Key settings
+
+- Prometheus retention: **1 day**, 5 Gi PVC
+- Loki retention: **1 day**, MinIO (S3) backend, 2 Gi WAL PVC
+- MinIO storage: **10 Gi** PVC, bucket `loki` auto-created
+- AlertManager: **disabled**
+- Alloy: DaemonSet on all nodes, ships pod logs + cluster events to Loki
+
+### Sealed secrets (TODO — do after first deploy)
+
+Credentials are currently **hardcoded** in Helm values (private repo, POC).
+Replace them with SealedSecrets once the controller is running:
+
+```bash
+# 1. Edit the passwords in the script
+vim scripts/seal-monitoring-secrets.sh
+
+# 2. Run it (requires kubeseal + kubectl in PATH, controller must be Running)
+KUBECONFIG=kubeconfig.yaml bash scripts/seal-monitoring-secrets.sh
+
+# 3. Commit the generated files
+git add gitops/sealed-secrets/ && git commit -m "secrets: seal monitoring credentials" && git push
+```
+
+Then update the three Helm apps to use `existingSecret` instead of inline values:
+
+| App | Secret name | Helm keys to change |
+|---|---|---|
+| `prometheus-stack` | `grafana-admin-secret` | `grafana.admin.existingSecret` |
+| `minio` | `minio-root-secret` | `existingSecret` |
+| `loki` | `loki-minio-secret` | inject via `singleBinary.extraEnvFrom` |
+
+### Alloy log collection
+
+Alloy discovers all pods via Kubernetes API and ships logs to Loki.
+Config is inline in `argocd/apps/alloy.yaml` — edit the `alloy.configMap.content` block to add extra pipelines (e.g. metrics, traces, node journal logs).
+
+---
+
 ## Quick reference
 
 | Command | Purpose |
