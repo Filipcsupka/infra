@@ -163,6 +163,64 @@ Notes:
 
 ---
 
+## GPU worker node
+
+The cluster can run an additional NVIDIA GPU worker over Tailscale. Hetzner remains the control-plane/worker node for public apps, while the home GPU node is tainted for explicit AI workloads.
+
+Current node addresses:
+
+| Node | Role | Public IP | Tailscale IP |
+|---|---|---:|---:|
+| `family-webapp` | k3s server + public app worker | `178.104.235.97` | `100.82.16.35` |
+| `k3sgpu` | NVIDIA GPU worker | n/a | `100.86.152.16` |
+
+Prerequisites:
+
+- Hetzner control-plane and GPU worker are logged in to the same Tailscale tailnet.
+- GPU worker has the NVIDIA driver and `nvidia-container-runtime` installed.
+- SSH key access works for `root@family-webapp` and `ja@k3sgpu`.
+- For the GPU worker, either use `--ask-become-pass` or configure passwordless sudo for automation.
+
+Run:
+
+```bash
+ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/gpu-worker.yml --ask-become-pass
+```
+
+The playbook:
+
+- configures k3s flannel/node networking to use `tailscale0`;
+- reads the k3s join token from the control-plane without committing it;
+- joins `k3sgpu` as a k3s agent with `--default-runtime=nvidia`;
+- labels and taints the GPU node with `accelerator=nvidia` and `nvidia.com/gpu=true:NoSchedule`;
+- installs NVIDIA `k8s-device-plugin` and restricts it to GPU nodes.
+
+Verify:
+
+```bash
+KUBECONFIG=kubeconfig.yaml kubectl get nodes -o wide
+KUBECONFIG=kubeconfig.yaml kubectl get node k3sgpu \
+  -o jsonpath='{.status.allocatable.nvidia\.com/gpu}{" GPU\n"}'
+KUBECONFIG=kubeconfig.yaml kubectl -n kube-system get pods \
+  -l name=nvidia-device-plugin-ds -o wide
+```
+
+GPU workloads must request `nvidia.com/gpu` and tolerate the GPU taint:
+
+```yaml
+tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+nodeSelector:
+  accelerator: nvidia
+resources:
+  limits:
+    nvidia.com/gpu: 1
+```
+
+---
+
 ## Quick reference
 
 | Command | Purpose |

@@ -1,0 +1,36 @@
+# Expose the Ollama process running on the k3sgpu host as a Kubernetes Service.
+#
+# Ollama runs as a systemd service on the host (OLLAMA_HOST=0.0.0.0:11434).
+# It is NOT a k8s pod. We create a headless Service + manual Endpoints so that
+# pods inside the cluster can reach Ollama via DNS:
+#
+#   http://ollama.ai-chat.svc.cluster.local:11434
+#
+# The Endpoints IP (100.86.152.16) is the k3sgpu Tailscale IP.
+# Cross-node traffic flows through the Tailscale flannel overlay.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama
+  namespace: ai-chat
+spec:
+  ports:
+    - name: http
+      port: 11434
+      targetPort: 11434
+      protocol: TCP
+  clusterIP: None   # headless — bypasses kube-proxy, routes directly to Endpoints
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: ollama
+  namespace: ai-chat
+subsets:
+  - addresses:
+      - ip: 100.86.152.16   # k3sgpu Tailscale IP — where Ollama listens
+    ports:
+      - name: http
+        port: 11434
+        protocol: TCP

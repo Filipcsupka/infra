@@ -1,0 +1,183 @@
+---
+- name: Prepare control-plane networking for Tailscale worker nodes
+  hosts: control_plane
+  become: true
+
+  vars:
+    k3s_device_plugin_version: "v0.19.1"
+
+  handlers:
+    - name: Restart k3s
+      systemd:
+        name: k3s
+        state: restarted
+
+  tasks:
+    - name: Check Tailscale address on control-plane
+      command: tailscale ip -4
+      register: control_plane_tailscale_ip
+      changed_when: false
+
+    - name: Verify inventory Tailscale IP matches control-plane
+      assert:
+        that:
+          - control_plane_tailscale_ip.stdout == tailscale_ip
+        fail_msg: "Inventory tailscale_ip does not match the control-plane Tailscale address."
+
+    - name: Configure k3s server to advertise Tailscale for cluster networking
+      copy:
+        dest: /etc/rancher/k3s/config.yaml
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          flannel-iface: tailscale0
+          node-ip: {{ tailscale_ip }}
+          node-external-ip: {{ public_ip | default(ansible_host) }}
+          tls-san:
+            - {{ tailscale_ip }}
+      notify: Restart k3s
+
+    - name: Flush control-plane handlers before reading token
+      meta: flush_handlers
+
+    - name: Wait for control-plane node
+      command: kubectl get nodes -o wide
+      register: control_plane_nodes
+      changed_when: false
+      until: "'Ready' in control_plane_nodes.stdout"
+      retries: 30
+      delay: 10
+
+    - name: Read k3s worker join token
+      slurp:
+        src: /var/lib/rancher/k3s/server/node-token
+      register: k3s_node_token_slurp
+      no_log: true
+
+    - name: Store k3s worker join token for worker play
+      set_fact:
+        k3s_node_token: "{{ k3s_node_token_slurp.content | b64decode | trim }}"
+      no_log: true
+
+    - name: Install NVIDIA device plugin
+      command: >
+        kubectl apply -f
+        https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/{{ k3s_device_plugin_version }}/deployments/static/nvidia-device-plugin.yml
+      register: nvidia_device_plugin_apply
+      changed_when: "'created' in nvidia_device_plugin_apply.stdout or 'configured' in nvidia_device_plugin_apply.stdout"
+
+    - name: Restrict NVIDIA device plugin to GPU nodes
+      command: >
+        kubectl -n kube-system patch daemonset nvidia-device-plugin-daemonset
+        --type merge
+        -p '{"spec":{"template":{"spec":{"nodeSelector":{"accelerator":"nvidia"}}}}}'
+      register: nvidia_device_plugin_patch
+      changed_when: "'patched' in nvidia_device_plugin_patch.stdout"
+
+- name: Join NVIDIA GPU workers to k3s
+  hosts: gpu_workers
+  become: true
+
+  vars:
+    k3s_version: "v1.34.6+k3s1"
+    k3s_control_plane: "{{ groups['control_plane'][0] }}"
+    k3s_server_url: "https://{{ hostvars[k3s_control_plane].tailscale_ip }}:6443"
+
+  handlers:
+    - name: Restart k3s agent
+      systemd:
+        name: k3s-agent
+        state: restarted
+
+  tasks:
+    - name: Install dependencies
+      apt:
+        name:
+          - curl
+          - ca-certificates
+        state: present
+        update_cache: true
+
+    - name: Check Tailscale address on GPU worker
+      command: tailscale ip -4
+      register: gpu_worker_tailscale_ip
+      changed_when: false
+
+    - name: Verify inventory Tailscale IP matches GPU worker
+      assert:
+        that:
+          - gpu_worker_tailscale_ip.stdout == tailscale_ip
+        fail_msg: "Inventory tailscale_ip does not match the GPU worker Tailscale address."
+
+    - name: Verify NVIDIA driver is available
+      command: nvidia-smi
+      changed_when: false
+
+    - name: Verify NVIDIA container runtime is available
+      command: nvidia-container-runtime --version
+      changed_when: false
+
+    - name: Configure k3s GPU worker
+      copy:
+        dest: /etc/rancher/k3s/config.yaml
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          server: {{ k3s_server_url }}
+          token: {{ hostvars[k3s_control_plane].k3s_node_token }}
+          node-name: {{ inventory_hostname }}
+          node-label:
+            - accelerator=nvidia
+            - nvidia.com/gpu.present=true
+          node-taint:
+            - nvidia.com/gpu=true:NoSchedule
+          flannel-iface: tailscale0
+          node-ip: {{ tailscale_ip }}
+          kubelet-arg:
+            - provider-id=k3s://{{ inventory_hostname }}
+      no_log: true
+      notify: Restart k3s agent
+
+    - name: Check if k3s agent is installed
+      stat:
+        path: /etc/systemd/system/k3s-agent.service
+      register: k3s_agent_service
+
+    - name: Install k3s agent
+      shell: |
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="{{ k3s_version }}" INSTALL_K3S_EXEC="agent --default-runtime=nvidia" sh -
+      when: not k3s_agent_service.stat.exists
+
+    - name: Flush worker handlers after config changes
+      meta: flush_handlers
+
+    - name: Ensure k3s agent is enabled and running
+      systemd:
+        name: k3s-agent
+        enabled: true
+        state: started
+
+- name: Verify GPU worker registration
+  hosts: control_plane
+  become: true
+
+  tasks:
+    - name: Wait for GPU workers to be Ready
+      command: kubectl get node {{ item }} -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
+      register: gpu_worker_ready
+      changed_when: false
+      until: gpu_worker_ready.stdout == "True"
+      retries: 30
+      delay: 10
+      loop: "{{ groups['gpu_workers'] }}"
+
+    - name: Wait for NVIDIA GPU allocatable resource
+      command: kubectl get node {{ item }} -o jsonpath='{.status.allocatable.nvidia\.com/gpu}'
+      register: gpu_allocatable
+      changed_when: false
+      until: gpu_allocatable.stdout | int > 0
+      retries: 30
+      delay: 10
+      loop: "{{ groups['gpu_workers'] }}"

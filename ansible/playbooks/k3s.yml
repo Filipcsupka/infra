@@ -4,7 +4,7 @@
   become: true
 
   vars:
-    k3s_version: "v1.31.4+k3s1"  # pin to a known-good release; update deliberately
+    k3s_version: "v1.34.6+k3s1"  # pin to the currently deployed cluster version; update deliberately
 
   tasks:
     - name: Install dependencies

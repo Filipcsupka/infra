@@ -1,0 +1,131 @@
+# RAG API — FastAPI service implementing the chat pipeline.
+#
+# Scheduled on the GPU node (k3sgpu) to be close to Ollama (host process).
+# Does NOT request nvidia.com/gpu — it uses Ollama for inference via HTTP.
+# The GPU taint is tolerated so it can share the node with Ollama.
+#
+# Knowledge base markdown files are mounted from a ConfigMap.
+# Image tag is updated by GitHub Actions CI (repository_dispatch from ai-chat repo).
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-api
+  namespace: ai-chat
+  labels:
+    app: rag-api
+    app.kubernetes.io/version: "REPLACED_BY_CI"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rag-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: rag-api
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+
+      containers:
+        - name: rag-api
+          image: ghcr.io/filipcsupka/ai-chat-rag-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+
+          env:
+            - name: OLLAMA_URL
+              value: http://ollama.ai-chat.svc.cluster.local:11434
+            - name: CHROMADB_HOST
+              value: chromadb.ai-chat.svc.cluster.local
+            - name: CHROMADB_PORT
+              value: "8000"
+            - name: KNOWLEDGE_BASE_DIR
+              value: /app/knowledge-base
+            # Allow chat widget origin in CORS
+            - name: CORS_ORIGINS
+              value: '["https://filipcsupka.online","https://www.filipcsupka.online"]'
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+
+          # Readiness waits for knowledge base ingestion to complete (~60s on cold start)
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 12   # up to 2 min wait
+
+          volumeMounts:
+            - name: knowledge-base
+              mountPath: /app/knowledge-base
+              readOnly: true
+
+      volumes:
+        - name: knowledge-base
+          configMap:
+            name: knowledge-base
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-api
+  namespace: ai-chat
+spec:
+  selector:
+    app: rag-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rag-api
+  namespace: ai-chat
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: ai.filipcsupka.online
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rag-api
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - ai.filipcsupka.online
+      secretName: rag-api-tls

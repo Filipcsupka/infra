@@ -1,0 +1,99 @@
+# ChromaDB — vector database for RAG embeddings.
+#
+# Runs on the GPU node (k3sgpu) alongside the RAG API.
+# Does NOT use the GPU — it tolerates the taint so it can be scheduled
+# on the GPU node, but uses only CPU + memory.
+#
+# Data is persisted to a PVC (/chroma/chroma) so embeddings survive pod restarts.
+# If the PVC is deleted, the RAG API will re-ingest on next startup (takes ~60s).
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: chromadb-data
+  namespace: ai-chat
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chromadb
+  namespace: ai-chat
+  labels:
+    app: chromadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chromadb
+  strategy:
+    type: Recreate   # PVC is RWO — only one pod can mount at a time
+  template:
+    metadata:
+      labels:
+        app: chromadb
+    spec:
+      nodeSelector:
+        accelerator: nvidia   # pin to GPU node (k3sgpu) — keeps AI stack co-located
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+
+      containers:
+        - name: chromadb
+          image: chromadb/chroma:0.6.3
+          ports:
+            - containerPort: 8000
+          env:
+            - name: IS_PERSISTENT
+              value: "TRUE"
+            - name: PERSIST_DIRECTORY
+              value: /chroma/chroma
+            - name: ANONYMIZED_TELEMETRY
+              value: "FALSE"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /chroma/chroma
+          livenessProbe:
+            httpGet:
+              path: /api/v1/heartbeat
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/heartbeat
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: chromadb-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chromadb
+  namespace: ai-chat
+spec:
+  selector:
+    app: chromadb
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
