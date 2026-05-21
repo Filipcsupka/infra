@@ -22,15 +22,18 @@ spec:
       protocol: TCP
   clusterIP: None   # headless — bypasses kube-proxy, routes directly to Endpoints
 ---
-apiVersion: v1
-kind: Endpoints
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
 metadata:
   name: ollama
   namespace: ai-chat
-subsets:
+  labels:
+    kubernetes.io/service-name: ollama  # links this slice to the ollama Service
+addressType: IPv4
+endpoints:
   - addresses:
-      - ip: 100.86.152.16   # k3sgpu Tailscale IP — where Ollama listens
-    ports:
-      - name: http
-        port: 11434
-        protocol: TCP
+      - 100.86.152.16  # k3sgpu Tailscale IP — where Ollama listens
+ports:
+  - name: http
+    port: 11434
+    protocol: TCP
