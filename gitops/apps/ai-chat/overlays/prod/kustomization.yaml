@@ -7,4 +7,4 @@ resources:
 images:
   - name: ghcr.io/filipcsupka/ai-chat-rag-api
     newName: ghcr.io/filipcsupka/ai-chat-rag-api
-    newTag: sha-f9f54ed
+    newTag: sha-f45435a
