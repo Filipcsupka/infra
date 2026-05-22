@@ -81,8 +81,14 @@ Each app follows the standard Kustomize layout: `base/` contains the canonical m
   ```
 - [ ] After bootstrap, treat `argocd/projects/` and `argocd/apps/` as Argo-managed:
   - push git changes there and let ArgoCD reconcile them
-  - pushes to `argocd/**` trigger the single `Sync ArgoCD` workflow
+  - the single `ArgoCD` workflow runs on commits touching `argocd/**`, on a daily schedule, and on manual dispatch
   - the workflow always refreshes `infra-root` and only runs Helm upgrade when ArgoCD itself changed
+
+### CI/CD operating model
+
+- `Deploy Cluster` is the only cluster bootstrap and rebuild workflow.
+- `ArgoCD` is the only Argo/application sync workflow.
+- Terraform, k3s/Ansible, and Argo bootstrap are intentionally chained inside `Deploy Cluster` so a fresh environment is one button click.
 
 ### 5 — Traefik ingress + Cloudflare DNS/proxy
 

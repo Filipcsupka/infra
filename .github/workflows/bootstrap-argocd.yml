@@ -1,4 +1,4 @@
-name: Sync ArgoCD
+name: ArgoCD
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
     paths:
       - 'argocd/**'
       - '.github/workflows/bootstrap-argocd.yml'
+  schedule:
+    - cron: '17 3 * * *'
   workflow_dispatch:
 
 env:
@@ -19,18 +21,21 @@ jobs:
   sync:
     name: Apply ArgoCD state
     runs-on: ubuntu-latest
+    concurrency:
+      group: argocd-sync
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Detect ArgoCD upgrade changes
         id: changes
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "schedule" ]; then
             echo "needs_upgrade=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
