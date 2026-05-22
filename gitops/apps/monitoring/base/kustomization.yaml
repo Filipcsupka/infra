@@ -5,3 +5,14 @@ resources:
   - namespace.yaml
   - service.yaml
   - ingress.yaml
+
+configMapGenerator:
+  - name: monitoring-grafana-dashboard-nvidia-gpu
+    namespace: monitoring
+    files:
+      - nvidia-gpu-kubernetes.json=nvidia-gpu-dashboard.json
+
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    grafana_dashboard: "1"

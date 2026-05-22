@@ -69,10 +69,6 @@ spec:
           # Auto-provision dashboards from grafana.com
           dashboards:
             default:
-              nvidia-gpu-kubernetes:
-                gnetId: 23382
-                revision: 1
-                datasource: Prometheus
               k8s-views-global:
                 gnetId: 15757
                 revision: 37
