@@ -25,11 +25,11 @@ server:
 repoServer:
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
       cpu: 200m
-      memory: 128Mi
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
 
 controller:
   resources:
