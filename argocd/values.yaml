@@ -34,11 +34,11 @@ repoServer:
 controller:
   resources:
     requests:
-      cpu: 50m
-      memory: 64Mi
+      cpu: 200m
+      memory: 256Mi
     limits:
-      cpu: 300m
-      memory: 512Mi
+      cpu: 1000m
+      memory: 512Gi
 
 redis:
   resources:

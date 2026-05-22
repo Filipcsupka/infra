@@ -56,7 +56,16 @@ jobs:
             --namespace argocd \
             --values argocd/values.yaml \
             --set configs.cm.url=http://${SERVER_IP}:30080 \
-            --wait --timeout 300s
+            --wait --timeout 600s
+
+      - name: Debug ArgoCD rollout failure
+        if: ${{ failure() }}
+        run: |
+          kubectl -n argocd get pods -o wide || true
+          kubectl -n argocd get deploy,statefulset || true
+          kubectl -n argocd describe pod argocd-application-controller-0 || true
+          kubectl -n argocd logs statefulset/argocd-application-controller --tail=200 || true
+          kubectl -n argocd logs deploy/argocd-repo-server --tail=200 || true
 
       - name: Apply AppProject
         run: kubectl apply -f argocd/projects/default.yaml
