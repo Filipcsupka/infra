@@ -95,6 +95,7 @@ Each app follows the standard Kustomize layout: `base/` contains the canonical m
 The cluster exposes apps through Traefik on the Hetzner node ports `80` and `443`.
 Cloudflare provides public DNS and browser-facing HTTPS.
 Traefik is installed by Ansible through Helm; chart settings are in `ansible/helm-values/traefik.yaml`.
+The k3s playbook also sets `providers.kubernetesIngress.ingressEndpoint.ip` to the control-plane public IP so Kubernetes Ingress objects publish a load balancer address and ArgoCD can mark them healthy.
 
 - [ ] Confirm the Hetzner firewall allows inbound TCP `80` and `443`.
 - [ ] Run the Ansible k3s playbook; it installs or upgrades Traefik with host ports:
