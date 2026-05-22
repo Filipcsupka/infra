@@ -75,6 +75,22 @@ spec:
             enabled: true
             size: 2Gi  # WAL + local caches
 
+        chunksCache:
+          nodeSelector:
+            accelerator: nvidia
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+
+        resultsCache:
+          nodeSelector:
+            accelerator: nvidia
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+
         # Disable unused multi-process components
         backend:
           replicas: 0

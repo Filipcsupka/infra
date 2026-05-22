@@ -12,14 +12,15 @@ spec:
     helm:
       releaseName: alloy
       values: |
-        # DaemonSet — collect logs from all nodes (no nodeSelector)
+        # GPU-only DaemonSet — runs only on the k3sgpu node.
         controller:
           type: daemonset
-
-        tolerations:
-          - key: nvidia.com/gpu
-            operator: Exists
-            effect: NoSchedule
+          nodeSelector:
+            accelerator: nvidia
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
 
         alloy:
           configMap:
@@ -72,14 +73,13 @@ spec:
                   url = "http://loki.monitoring.svc.cluster.local:3100/loki/api/v1/push"
                 }
               }
-
-        resources:
-          requests:
-            cpu: 20m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 256Mi
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
 
   destination:
     server: https://kubernetes.default.svc

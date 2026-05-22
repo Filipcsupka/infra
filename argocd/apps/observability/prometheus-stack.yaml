@@ -14,6 +14,15 @@ spec:
       values: |
         fullnameOverride: monitoring
 
+        crds:
+          upgradeJob:
+            nodeSelector:
+              accelerator: nvidia
+            tolerations:
+              - key: nvidia.com/gpu
+                operator: Exists
+                effect: NoSchedule
+
         # ── Grafana ──────────────────────────────────────────────────────────
         grafana:
           enabled: true
@@ -150,6 +159,21 @@ spec:
             - key: nvidia.com/gpu
               operator: Exists
               effect: NoSchedule
+          admissionWebhooks:
+            deployment:
+              nodeSelector:
+                accelerator: nvidia
+              tolerations:
+                - key: nvidia.com/gpu
+                  operator: Exists
+                  effect: NoSchedule
+            patch:
+              nodeSelector:
+                accelerator: nvidia
+              tolerations:
+                - key: nvidia.com/gpu
+                  operator: Exists
+                  effect: NoSchedule
           resources:
             requests:
               cpu: 50m
@@ -174,8 +198,10 @@ spec:
               cpu: 100m
               memory: 128Mi
 
-        # ── node-exporter (DaemonSet — both nodes) ────────────────────────────
+        # ── node-exporter (GPU node only) ─────────────────────────────────────
         prometheus-node-exporter:
+          nodeSelector:
+            accelerator: nvidia
           tolerations:
             - key: nvidia.com/gpu
               operator: Exists

@@ -50,6 +50,14 @@ spec:
             policy: none
             purge: false
 
+        postJob:
+          nodeSelector:
+            accelerator: nvidia
+          tolerations:
+            - key: nvidia.com/gpu
+              operator: Exists
+              effect: NoSchedule
+
         # Disable features not needed
         metrics:
           serviceMonitor:
