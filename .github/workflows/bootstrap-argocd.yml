@@ -4,7 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'argocd/**'
+      - 'argocd/values.yaml'
+      - 'argocd/root-application.yaml'
       - '.github/workflows/bootstrap-argocd.yml'
   workflow_dispatch:
 
@@ -67,8 +68,8 @@ jobs:
           kubectl -n argocd logs statefulset/argocd-application-controller --tail=200 || true
           kubectl -n argocd logs deploy/argocd-repo-server --tail=200 || true
 
-      - name: Apply AppProject
-        run: kubectl apply -f argocd/projects/default.yaml
+      - name: Apply Argo Root Application
+        run: kubectl apply -f argocd/root-application.yaml
 
-      - name: Apply Applications
-        run: kubectl apply -R -f argocd/apps/
+      - name: Show Root Application
+        run: kubectl -n argocd get application infra-root -o wide

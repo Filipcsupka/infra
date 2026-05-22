@@ -70,15 +70,18 @@ Each app follows the standard Kustomize layout: `base/` contains the canonical m
 
 ### 4 — ArgoCD: deploy applications
 
-- [ ] Apply the AppProject:
+- [ ] Apply the root ArgoCD application:
   ```bash
-  kubectl apply -f argocd/projects/default.yaml
+  kubectl apply -f argocd/root-application.yaml
   ```
-- [ ] Apply Application CRDs:
+- [ ] Verify the root application creates the AppProject and child applications:
   ```bash
-  kubectl apply -R -f argocd/apps/
+  kubectl -n argocd get application infra-root
+  kubectl -n argocd get appproject,applications
   ```
-- [ ] Verify both apps sync successfully in the ArgoCD UI
+- [ ] After bootstrap, treat `argocd/projects/` and `argocd/apps/` as Argo-managed:
+  - push git changes there and let ArgoCD reconcile them
+  - use GitHub Actions only to bootstrap or repair ArgoCD itself
 
 ### 5 — Traefik ingress + Cloudflare DNS/proxy
 

@@ -116,10 +116,19 @@ jobs:
             --namespace argocd \
             --values argocd/values.yaml \
             --set configs.cm.url=http://${{ needs.terraform.outputs.server_ip }}:30080 \
-            --wait --timeout 300s
+            --wait --timeout 600s
 
-      - name: Apply AppProject
-        run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -f argocd/projects/default.yaml
+      - name: Debug ArgoCD rollout failure
+        if: ${{ failure() }}
+        run: |
+          kubectl --kubeconfig /tmp/kubeconfig.yaml -n argocd get pods -o wide || true
+          kubectl --kubeconfig /tmp/kubeconfig.yaml -n argocd get deploy,statefulset || true
+          kubectl --kubeconfig /tmp/kubeconfig.yaml -n argocd describe pod argocd-application-controller-0 || true
+          kubectl --kubeconfig /tmp/kubeconfig.yaml -n argocd logs statefulset/argocd-application-controller --tail=200 || true
+          kubectl --kubeconfig /tmp/kubeconfig.yaml -n argocd logs deploy/argocd-repo-server --tail=200 || true
 
-      - name: Apply Applications
-        run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -R -f argocd/apps/
+      - name: Apply Argo Root Application
+        run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -f argocd/root-application.yaml
+
+      - name: Show Root Application
+        run: kubectl --kubeconfig /tmp/kubeconfig.yaml -n argocd get application infra-root -o wide
