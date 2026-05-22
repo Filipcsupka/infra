@@ -1,4 +1,4 @@
-name: Monitoring
+name: Kuma
 
 on:
   push:

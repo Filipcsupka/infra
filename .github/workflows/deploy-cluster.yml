@@ -122,4 +122,4 @@ jobs:
         run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -f argocd/projects/default.yaml
 
       - name: Apply Applications
-        run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -f argocd/apps/
+        run: kubectl --kubeconfig /tmp/kubeconfig.yaml apply -R -f argocd/apps/

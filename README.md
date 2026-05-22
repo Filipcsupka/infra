@@ -10,7 +10,7 @@ infra/
 ├── argocd/
 │   ├── install/        # ArgoCD server deployment (kustomization + config patches)
 │   ├── projects/       # AppProject definitions
-│   └── apps/           # ArgoCD Application CRDs (one per app)
+│   └── apps/           # ArgoCD Application CRDs grouped by domain (web/observability/core)
 └── gitops/
     └── apps/
         ├── my-cv/      # Personal CV webapp
@@ -76,8 +76,7 @@ Each app follows the standard Kustomize layout: `base/` contains the canonical m
   ```
 - [ ] Apply Application CRDs:
   ```bash
-  kubectl apply -f argocd/apps/my-cv.yaml
-  kubectl apply -f argocd/apps/vevsdesign.yaml
+  kubectl apply -R -f argocd/apps/
   ```
 - [ ] Verify both apps sync successfully in the ArgoCD UI
 
@@ -224,7 +223,7 @@ resources:
 ## Monitoring stack (GPU node POC)
 
 All monitoring components run on the GPU node (`k3sgpu`, `accelerator: nvidia`).
-Every ArgoCD app in `argocd/apps/` is auto-applied by GitHub Actions on push to `main` — no manual steps after push.
+Every ArgoCD app in `argocd/apps/` is auto-applied recursively by GitHub Actions on push to `main` — no manual steps after push.
 
 ### Apps
 
@@ -292,7 +291,7 @@ Then update the three Helm apps to use `existingSecret` instead of inline values
 ### Alloy log collection
 
 Alloy discovers all pods via Kubernetes API and ships logs to Loki.
-Config is inline in `argocd/apps/alloy.yaml` — edit the `alloy.configMap.content` block to add extra pipelines (e.g. metrics, traces, node journal logs).
+Config is inline in `argocd/apps/observability/alloy.yaml` — edit the `alloy.configMap.content` block to add extra pipelines (e.g. metrics, traces, node journal logs).
 
 ---
 
@@ -303,6 +302,6 @@ Config is inline in `argocd/apps/alloy.yaml` — edit the `alloy.configMap.conte
 | `terraform init && terraform apply` | Provision Hetzner VMs + k3s cluster |
 | `terraform destroy` | Tear down all cloud resources |
 | `kubectl apply -k argocd/install/` | Install ArgoCD on the cluster |
-| `kubectl apply -f argocd/apps/` | Register all applications with ArgoCD |
+| `kubectl apply -R -f argocd/apps/` | Register all applications with ArgoCD |
 | `kubectl -n argocd get pods` | Check ArgoCD health |
 | `KUBECONFIG=kubeconfig.yaml kubectl get nodes` | Verify cluster nodes |

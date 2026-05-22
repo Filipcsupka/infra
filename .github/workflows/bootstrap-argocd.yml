@@ -62,4 +62,4 @@ jobs:
         run: kubectl apply -f argocd/projects/default.yaml
 
       - name: Apply Applications
-        run: kubectl apply -f argocd/apps/
+        run: kubectl apply -R -f argocd/apps/

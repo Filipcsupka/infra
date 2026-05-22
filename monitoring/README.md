@@ -56,4 +56,4 @@ docker logs uptime-kuma -f
 ## Re-deploy from scratch
 
 Push any change to `monitoring/**` or `ansible/playbooks/monitoring.yml` → GH Actions re-runs.  
-Or trigger manually: Actions → Monitoring → Run workflow.
+Or trigger manually: Actions → Kuma → Run workflow.
