@@ -3,6 +3,8 @@ kind: Application
 metadata:
   name: loki
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
 spec:
   project: apps
   source:
@@ -102,14 +104,15 @@ spec:
         gateway:
           enabled: false
 
-        # Disable self-monitoring / canary
+        lokiCanary:
+          enabled: false
+
+        # Disable self-monitoring
         monitoring:
           selfMonitoring:
             enabled: false
             grafanaAgent:
               installOperator: false
-          lokiCanary:
-            enabled: false
 
         test:
           enabled: false
