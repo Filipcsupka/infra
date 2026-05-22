@@ -81,7 +81,8 @@ Each app follows the standard Kustomize layout: `base/` contains the canonical m
   ```
 - [ ] After bootstrap, treat `argocd/projects/` and `argocd/apps/` as Argo-managed:
   - push git changes there and let ArgoCD reconcile them
-  - use GitHub Actions only to bootstrap or repair ArgoCD itself
+  - pushes to `argocd/apps/**` and `argocd/projects/**` also trigger a lightweight `Sync Argo Root` workflow that refreshes `infra-root`
+  - use `Bootstrap ArgoCD` only to bootstrap or repair ArgoCD itself
 
 ### 5 — Traefik ingress + Cloudflare DNS/proxy
 
