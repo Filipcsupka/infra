@@ -231,10 +231,16 @@ resources:
 
 ---
 
-## Monitoring stack (GPU node POC)
+## Monitoring stack
 
-All monitoring components run on the GPU node (`k3sgpu`, `accelerator: nvidia`).
-Every ArgoCD app in `argocd/apps/` is auto-applied recursively by GitHub Actions on push to `main` — no manual steps after push.
+The observability stack is currently pinned to the GPU worker node (`k3sgpu`, `accelerator: nvidia`) unless a chart component explicitly requires something else.
+The intended telemetry flow is:
+
+- `dcgm-exporter` exposes NVIDIA GPU metrics
+- Prometheus scrapes those metrics via `ServiceMonitor`
+- Grafana reads them from the default `Prometheus` datasource
+
+This is the preferred model for this repo. GPU metrics are not supposed to use a separate Grafana datasource.
 
 ### Apps
 
@@ -244,7 +250,7 @@ Every ArgoCD app in `argocd/apps/` is auto-applied recursively by GitHub Actions
 | `dcgm-exporter` | `nvidia/dcgm-exporter` | `monitoring` | NVIDIA GPU metrics (RTX 2070) |
 | `minio` | `minio/minio` | `monitoring` | S3-compatible storage for Loki |
 | `loki` | `grafana/loki` | `monitoring` | Log aggregation, single-binary mode |
-| `alloy` | `grafana/alloy` | `monitoring` | Log collection DaemonSet (all nodes → Loki) |
+| `alloy` | `grafana/alloy` | `monitoring` | Log collection |
 | `sealed-secrets` | `sealed-secrets` | `kube-system` | SealedSecret controller |
 | `monitoring-secrets` | kustomize | `monitoring` | Decrypted secrets from `gitops/sealed-secrets/` |
 | `monitoring` | kustomize | `monitoring` | Uptime Kuma proxy (existing, unchanged) |
@@ -260,7 +266,7 @@ Pre-provisioned dashboards (auto-pulled from grafana.com on startup):
 
 | ID | Dashboard |
 |---|---|
-| 12239 | NVIDIA DCGM Exporter (GPU util, temp, VRAM, power) |
+| 23382 | NVIDIA DCGM Dashboard for Kubernetes |
 | 15757 | Kubernetes — Global view |
 | 15759 | Kubernetes — Nodes |
 | 15760 | Kubernetes — Pods |
@@ -273,7 +279,45 @@ Pre-provisioned dashboards (auto-pulled from grafana.com on startup):
 - Loki retention: **1 day**, MinIO (S3) backend, 2 Gi WAL PVC
 - MinIO storage: **10 Gi** PVC, bucket `loki` auto-created
 - AlertManager: **disabled**
-- Alloy: DaemonSet on all nodes, ships pod logs + cluster events to Loki
+- Alloy: currently GPU-pinned in this repo state
+
+### Current live state and handoff notes
+
+As of `2026-05-22`:
+
+- the repo uses an App-of-Apps model
+- `infra-root` manages `argocd/projects/**` and `argocd/apps/**`
+- GitHub Actions workflow model is intentionally reduced to:
+  - `Deploy Cluster`
+  - `ArgoCD`
+- `ArgoCD` runs on commits touching `argocd/**`, daily, and on manual dispatch
+- `Deploy Cluster` is the only full bootstrap / rebuild workflow
+
+Observability-specific notes:
+
+- `dcgm-exporter` is configured with `serviceMonitor.enabled: true`
+- Prometheus scrape path is:
+  - `ServiceMonitor dcgm-exporter`
+  - `Service dcgm-exporter`
+  - endpoint backing the current pod on `k3sgpu`
+- the Grafana GPU dashboard is configured to use the default `Prometheus` datasource
+- the extra temporary `dcgm` Grafana datasource was removed from git and from the live datasource ConfigMap
+
+Current blocker to remember:
+
+- ArgoCD can stay `Progressing` on apps with ingresses because Traefik was not publishing `status.loadBalancer`
+- this was fixed in repo by setting Traefik Helm arg:
+  - `providers.kubernetesIngress.ingressEndpoint.ip={{ ansible_host }}`
+- that change lives in `ansible/playbooks/k3s.yml`
+- it requires running `Deploy Cluster` so Traefik is upgraded on the cluster
+- until that rollout happens, apps such as `prometheus-stack` may keep waiting on ingress health even when pods are healthy
+
+What to do next when resuming:
+
+1. Run `Deploy Cluster` once so Traefik starts publishing ingress status.
+2. Re-check `kubectl get ingress -A` and confirm ingresses have a load balancer address.
+3. Re-check `kubectl -n argocd get applications`.
+4. Validate the Grafana GPU dashboard again after `prometheus-stack` reaches healthy/synced.
 
 ### Sealed secrets (TODO — do after first deploy)
 
@@ -299,11 +343,6 @@ Then update the three Helm apps to use `existingSecret` instead of inline values
 | `minio` | `minio-root-secret` | `existingSecret` |
 | `loki` | `loki-minio-secret` | inject via `singleBinary.extraEnvFrom` |
 
-### Alloy log collection
-
-Alloy discovers all pods via Kubernetes API and ships logs to Loki.
-Config is inline in `argocd/apps/observability/alloy.yaml` — edit the `alloy.configMap.content` block to add extra pipelines (e.g. metrics, traces, node journal logs).
-
 ---
 
 ## Quick reference
@@ -313,6 +352,7 @@ Config is inline in `argocd/apps/observability/alloy.yaml` — edit the `alloy.c
 | `terraform init && terraform apply` | Provision Hetzner VMs + k3s cluster |
 | `terraform destroy` | Tear down all cloud resources |
 | `kubectl apply -k argocd/install/` | Install ArgoCD on the cluster |
-| `kubectl apply -R -f argocd/apps/` | Register all applications with ArgoCD |
+| `kubectl apply -f argocd/root-application.yaml` | Register the root ArgoCD application |
 | `kubectl -n argocd get pods` | Check ArgoCD health |
+| `kubectl -n argocd get applications` | Check child application state |
 | `KUBECONFIG=kubeconfig.yaml kubectl get nodes` | Verify cluster nodes |
