@@ -1,0 +1,38 @@
+name: Observability
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'argocd/apps/observability/**'
+      - 'argocd/apps/core/sealed-secrets.yaml'
+      - 'argocd/projects/default.yaml'
+      - 'gitops/sealed-secrets/**'
+      - '.github/workflows/observability.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy-observability:
+    name: Deploy observability apps
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Apply AppProject
+        run: kubectl apply -f argocd/projects/default.yaml
+
+      - name: Apply core dependencies
+        run: kubectl apply -f argocd/apps/core/sealed-secrets.yaml
+
+      - name: Apply observability applications
+        run: kubectl apply -R -f argocd/apps/observability/
+
+      - name: Show ArgoCD applications
+        run: kubectl -n argocd get applications
