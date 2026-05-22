@@ -67,9 +67,9 @@ spec:
           # Auto-provision dashboards from grafana.com
           dashboards:
             default:
-              dcgm-exporter:
-                gnetId: 12239
-                revision: 2
+              nvidia-gpu-kubernetes:
+                gnetId: 23382
+                revision: 1
                 datasource: Prometheus
               k8s-views-global:
                 gnetId: 15757
@@ -111,7 +111,7 @@ spec:
               memory: 128Mi
             limits:
               cpu: 300m
-              memory: 256Mi
+              memory: 512Mi
 
         # ── Prometheus ───────────────────────────────────────────────────────
         prometheus:
