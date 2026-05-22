@@ -60,6 +60,15 @@ spec:
               searchNamespace: ALL
 
           additionalDataSources:
+            - name: dcgm
+              uid: dcgm
+              type: prometheus
+              url: http://monitoring-prometheus.monitoring:9090/
+              access: proxy
+              isDefault: false
+              jsonData:
+                httpMethod: POST
+                timeInterval: 30s
             - name: Loki
               type: loki
               url: http://loki.monitoring.svc.cluster.local:3100
@@ -72,7 +81,7 @@ spec:
               nvidia-gpu-kubernetes:
                 gnetId: 23382
                 revision: 1
-                datasource: Prometheus
+                datasource: dcgm
               k8s-views-global:
                 gnetId: 15757
                 revision: 37
