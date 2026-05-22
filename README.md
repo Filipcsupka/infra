@@ -81,8 +81,8 @@ Each app follows the standard Kustomize layout: `base/` contains the canonical m
   ```
 - [ ] After bootstrap, treat `argocd/projects/` and `argocd/apps/` as Argo-managed:
   - push git changes there and let ArgoCD reconcile them
-  - pushes to `argocd/apps/**` and `argocd/projects/**` also trigger a lightweight `Sync Argo Root` workflow that refreshes `infra-root`
-  - use `Bootstrap ArgoCD` only to bootstrap or repair ArgoCD itself
+  - pushes to `argocd/**` trigger the single `Sync ArgoCD` workflow
+  - the workflow always refreshes `infra-root` and only runs Helm upgrade when ArgoCD itself changed
 
 ### 5 — Traefik ingress + Cloudflare DNS/proxy
 

@@ -1,11 +1,10 @@
-name: Bootstrap ArgoCD
+name: Sync ArgoCD
 
 on:
   push:
     branches: [main]
     paths:
-      - 'argocd/values.yaml'
-      - 'argocd/root-application.yaml'
+      - 'argocd/**'
       - '.github/workflows/bootstrap-argocd.yml'
   workflow_dispatch:
 
@@ -17,20 +16,43 @@ env:
   TF_TOKEN_app_terraform_io: ${{ secrets.TF_API_TOKEN }}
 
 jobs:
-  bootstrap:
-    name: Apply ArgoCD manifests
+  sync:
+    name: Apply ArgoCD state
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect ArgoCD upgrade changes
+        id: changes
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "needs_upgrade=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")"
+          printf '%s\n' "$changed_files"
+
+          if printf '%s\n' "$changed_files" | rg -q '^(argocd/values\.yaml|argocd/root-application\.yaml|\.github/workflows/bootstrap-argocd\.yml)$'; then
+            echo "needs_upgrade=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_upgrade=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup Terraform
+        if: steps.changes.outputs.needs_upgrade == 'true'
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "~> 1.7"
           terraform_wrapper: false
 
       - name: Get server IP from remote state
+        if: steps.changes.outputs.needs_upgrade == 'true'
         working-directory: terraform
         run: |
           terraform init -input=false
@@ -43,15 +65,18 @@ jobs:
           chmod 600 ~/.kube/config
 
       - name: Install Helm
+        if: steps.changes.outputs.needs_upgrade == 'true'
         uses: azure/setup-helm@v4
 
       - name: Add ArgoCD Helm repo
+        if: steps.changes.outputs.needs_upgrade == 'true'
         run: helm repo add argo https://argoproj.github.io/argo-helm && helm repo update
 
       - name: Create argocd namespace
         run: kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Helm install / upgrade ArgoCD
+        if: steps.changes.outputs.needs_upgrade == 'true'
         run: |
           helm upgrade --install argocd argo/argo-cd \
             --namespace argocd \
@@ -60,7 +85,7 @@ jobs:
             --wait --timeout 600s
 
       - name: Debug ArgoCD rollout failure
-        if: ${{ failure() }}
+        if: ${{ failure() && steps.changes.outputs.needs_upgrade == 'true' }}
         run: |
           kubectl -n argocd get pods -o wide || true
           kubectl -n argocd get deploy,statefulset || true
@@ -71,5 +96,12 @@ jobs:
       - name: Apply Argo Root Application
         run: kubectl apply -f argocd/root-application.yaml
 
+      - name: Force infra-root refresh
+        run: |
+          kubectl -n argocd annotate application infra-root \
+            argocd.argoproj.io/refresh=hard --overwrite
+
       - name: Show Root Application
-        run: kubectl -n argocd get application infra-root -o wide
+        run: |
+          kubectl -n argocd get application infra-root -o wide
+          kubectl -n argocd get applications
