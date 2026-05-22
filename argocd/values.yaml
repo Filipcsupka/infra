@@ -38,7 +38,7 @@ controller:
       memory: 64Mi
     limits:
       cpu: 300m
-      memory: 256Mi
+      memory: 512Mi
 
 redis:
   resources:
