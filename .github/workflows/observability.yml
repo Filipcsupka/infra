@@ -35,4 +35,8 @@ jobs:
         run: kubectl apply -R -f argocd/apps/observability/
 
       - name: Show ArgoCD applications
-        run: kubectl -n argocd get applications
+        run: |
+          kubectl -n argocd get applications
+          echo
+          kubectl -n argocd get applications \
+            -o custom-columns=NAME:.metadata.name,SYNC:.status.sync.status,HEALTH:.status.health.status,CONDITIONS:.status.conditions[*].message
