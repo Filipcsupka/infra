@@ -182,6 +182,11 @@ spec:
                 - receiver: "null"
                   matchers:
                     - alertname = InfoInhibitor
+                # k3s false positives — controller-manager/scheduler/proxy run inside
+                # the k3s binary, Prometheus cannot scrape them via standard endpoints
+                - receiver: "null"
+                  matchers:
+                    - alertname =~ "KubeControllerManagerDown|KubeSchedulerDown|KubeProxyDown"
                 # Everything else goes to the AI agent
                 - receiver: k8s-ai-agent
                   matchers:
