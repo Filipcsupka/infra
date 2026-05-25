@@ -22,6 +22,13 @@ spec:
             operator: Exists
             effect: NoSchedule
 
+        # ServiceAccount required for in-cluster config so pod labels attach to metrics
+        serviceAccount:
+          create: true
+        podAnnotations:
+          prometheus.io/scrape: "true"
+          prometheus.io/port: "9400"
+
         # ServiceMonitor so prometheus-stack scrapes GPU metrics
         serviceMonitor:
           enabled: true
