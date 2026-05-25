@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ai-chat.yaml
-  - k8s-ai-agent.yaml
-  - my-cv.yaml
-  - vevsdesign.yaml
+  - namespace.yaml
+  - serviceaccount.yaml
+  - rbac.yaml
+  - agent.yaml

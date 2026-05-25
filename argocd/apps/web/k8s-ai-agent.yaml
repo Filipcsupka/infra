@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: k8s-ai-agent
+  namespace: argocd
+spec:
+  project: apps
+  source:
+    repoURL: https://github.com/Filipcsupka/infra
+    targetRevision: HEAD
+    path: gitops/apps/k8s-ai-agent/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-agent
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

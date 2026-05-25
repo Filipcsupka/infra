@@ -1,0 +1,99 @@
+# k8s-ai-agent — Deployment + Service
+#
+# Pinned to GPU node (accelerator=nvidia) — NOT for GPU compute.
+# Agent calls Ollama via HTTP. Co-locating avoids cross-node latency.
+# No nvidia.com/gpu resource limit needed.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-ai-agent
+  namespace: ai-agent
+  labels:
+    app: k8s-ai-agent
+    app.kubernetes.io/version: "REPLACED_BY_CI"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: k8s-ai-agent
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: k8s-ai-agent
+    spec:
+      serviceAccountName: k8s-ai-agent
+
+      nodeSelector:
+        accelerator: nvidia
+
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+
+      containers:
+        - name: agent
+          image: ghcr.io/filipcsupka/k8s-ai-agent:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+
+          env:
+            - name: OLLAMA_BASE_URL
+              value: "http://ollama.ai-chat.svc.cluster.local:11434"
+            - name: OLLAMA_MODEL
+              value: "qwen3:8b"
+            - name: ENABLE_AUTO_APPLY
+              value: "false"
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: k8s-ai-agent-secrets
+                  key: slack-webhook-url
+                  optional: true
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-ai-agent
+  namespace: ai-agent
+spec:
+  selector:
+    app: k8s-ai-agent
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+  # ClusterIP only — AlertManager reaches via in-cluster DNS.
+  # No public Ingress: this is an internal ops tool.
+  type: ClusterIP
