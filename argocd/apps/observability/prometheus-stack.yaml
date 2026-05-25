@@ -89,12 +89,6 @@ spec:
                 gnetId: 13639
                 revision: 2
                 datasource: Loki
-              # NVIDIA GPU dashboard using DEV metrics (works on consumer GPUs incl. RTX 2070)
-              # PROF metrics (Engine/Tensor utilization) require Data Center GPUs — skip those
-              nvidia-dcgm-exporter:
-                gnetId: 12239
-                revision: 2
-                datasource: Prometheus
 
           dashboardProviders:
             dashboardproviders.yaml:
