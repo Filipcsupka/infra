@@ -23,6 +23,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: ai-chat
       server: https://kubernetes.default.svc
+    - namespace: ai-agent
+      server: https://kubernetes.default.svc
     - namespace: kube-system
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
