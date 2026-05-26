@@ -1,0 +1,51 @@
+# chaos-slow-crash — runs for 45s (simulates a timeout / deadlock) then exits 1.
+# Produces a different investigation profile than chaos-crashloop:
+#   - Longer runtime before crash → agent sees different event timeline
+#   - Error message suggests upstream timeout, not immediate connection failure
+# Fires: KubePodCrashLooping (severity=warning)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-slow-crash
+  namespace: chaos
+  labels:
+    app: chaos-slow-crash
+    chaos-type: slow-crash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaos-slow-crash
+  template:
+    metadata:
+      labels:
+        app: chaos-slow-crash
+        chaos-type: slow-crash
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: app
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "INFO  [worker] Starting batch processor..."
+              echo "INFO  [worker] Acquired job lock, processing 1842 items"
+              echo "INFO  [worker] Calling upstream API at http://payments-svc:8080/process"
+              sleep 45
+              echo "ERROR [worker] Upstream health check timed out after 45s (deadline exceeded)"
+              echo "ERROR [worker] Circuit breaker OPEN — halting processing"
+              exit 1
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi

@@ -1,0 +1,47 @@
+# chaos-config-error — references a missing secret → CreateContainerConfigError.
+# Pod stays in waiting state. Different from CrashLoopBackOff — container never starts.
+# Fires: KubeContainerWaiting (for=1h, severity=warning) — slow to alert.
+# Tests the agent's ability to diagnose config/secret issues from events alone.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-config-error
+  namespace: chaos
+  labels:
+    app: chaos-config-error
+    chaos-type: config-error
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaos-config-error
+  template:
+    metadata:
+      labels:
+        app: chaos-config-error
+        chaos-type: config-error
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: app
+          image: busybox:1.36
+          command: ["sh", "-c", "echo 'Running'; sleep 3600"]
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: missing-database-secret-xyz
+                  key: password
+                  optional: false
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi

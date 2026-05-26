@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: chaos-generator
+  namespace: argocd
+spec:
+  project: apps
+  source:
+    repoURL: https://github.com/Filipcsupka/infra
+    targetRevision: HEAD
+    path: gitops/apps/chaos-generator/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: chaos
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

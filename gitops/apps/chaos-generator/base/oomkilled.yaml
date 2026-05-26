@@ -1,0 +1,51 @@
+# chaos-oomkilled — allocates memory in 10MB chunks until OOMKilled.
+# With 64Mi limit: dies after ~6-7 allocations (~1.5s of runtime).
+# OOMKilled → restart → OOMKilled → ... → CrashLoopBackOff after ~5 cycles.
+# Fires: KubePodCrashLooping (severity=warning), lastState.terminated.reason=OOMKilled
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-oomkilled
+  namespace: chaos
+  labels:
+    app: chaos-oomkilled
+    chaos-type: oomkilled
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaos-oomkilled
+  template:
+    metadata:
+      labels:
+        app: chaos-oomkilled
+        chaos-type: oomkilled
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: app
+          image: python:3.12-alpine
+          command:
+            - python3
+            - -c
+            - |
+              import time, sys
+              print("INFO  Starting ML model inference worker...", flush=True)
+              print("INFO  Loading model weights into memory...", flush=True)
+              data = []
+              while True:
+                  data.append(b"x" * 10_000_000)  # 10 MB chunks
+                  print(f"INFO  Allocated {len(data) * 10}MB of model data", flush=True)
+                  time.sleep(0.2)
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi   # intentionally low — OOMKilled after ~6 allocations

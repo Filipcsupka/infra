@@ -1,0 +1,24 @@
+# PVC for investigation JSON files collected by the AI agent.
+#
+# Uses local-path (default k3s storage class) → data lands on the GPU node
+# at /var/lib/rancher/k3s/storage/ on the root LVM partition (48G free on sda).
+#
+# IMPORTANT — storage behavior:
+#   - Data survives pod restarts (PVC persists independently of pod lifecycle)
+#   - Data is LOST if this PVC is deleted (local-path ReclaimPolicy=Delete)
+#   - The NVMe (nvme0n1, 232G) on k3sgpu is unmounted — future option for larger storage
+#   - 5Gi is more than enough for thousands of investigation JSON files
+#
+# Phase 2: mount this PVC in an ingest job that reads reviewed=true files
+# and loads them into ChromaDB collection k8s-runbooks.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-investigations
+  namespace: ai-agent
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

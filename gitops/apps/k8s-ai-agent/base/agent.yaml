@@ -29,6 +29,11 @@ spec:
     spec:
       serviceAccountName: k8s-ai-agent
 
+      volumes:
+        - name: investigations
+          persistentVolumeClaim:
+            claimName: agent-investigations
+
       nodeSelector:
         accelerator: nvidia
 
@@ -57,6 +62,12 @@ spec:
                   name: k8s-ai-agent-secrets
                   key: slack-webhook-url
                   optional: true
+            - name: INVESTIGATIONS_DIR
+              value: "/data/investigations"
+
+          volumeMounts:
+            - name: investigations
+              mountPath: /data/investigations
 
           resources:
             requests:

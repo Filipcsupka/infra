@@ -1,0 +1,32 @@
+# AlertmanagerConfig — chaos namespace routing override.
+#
+# The global AlertManager repeat_interval is 12h, which is too slow for testing.
+# This config creates a sub-route specifically for namespace=chaos with:
+#   - repeatInterval: 5m  → re-fires every 5 minutes (vs 12h global)
+#   - groupWait: 10s      → send first alert fast
+#   - groupInterval: 30s  → regroup quickly
+#
+# AlertmanagerConfig automatically adds namespace=chaos matcher.
+# Works because Alertmanager CR has alertmanagerConfigSelector: {} (all namespaces).
+#
+# First alert from each chaos pod arrives ~20-25min after pod starts:
+#   - Pod crashes → kubelet backoff → ~5 restarts → CrashLoopBackOff state
+#   - KubePodCrashLooping rule: for=15min of continuous CrashLoopBackOff
+#   - After first fire: re-fires every 5min via this config
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: chaos-fast-route
+  namespace: chaos
+spec:
+  route:
+    receiver: chaos-ai-agent
+    repeatInterval: 5m
+    groupInterval: 30s
+    groupWait: 10s
+  receivers:
+    - name: chaos-ai-agent
+      webhookConfigs:
+        - url: "http://k8s-ai-agent.ai-agent.svc.cluster.local/alert"
+          sendResolved: false

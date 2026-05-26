@@ -1,0 +1,40 @@
+# chaos-pending — requests 100 CPU cores → impossible to schedule → stays Pending.
+# Simulates resource exhaustion / misconfigured resource requests.
+# nodeSelector: nvidia keeps it targeting the GPU node (not some other node).
+# Fires: KubePodNotReady (for=15min, severity=warning)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-pending
+  namespace: chaos
+  labels:
+    app: chaos-pending
+    chaos-type: pending
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaos-pending
+  template:
+    metadata:
+      labels:
+        app: chaos-pending
+        chaos-type: pending
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: app
+          image: busybox:1.36
+          command: ["sh", "-c", "echo 'Running'; sleep 3600"]
+          resources:
+            requests:
+              cpu: "100"      # 100 cores — no node has this → always Pending
+              memory: "200Gi" # 200Gi RAM — also impossible
+            limits:
+              cpu: "100"
+              memory: "200Gi"

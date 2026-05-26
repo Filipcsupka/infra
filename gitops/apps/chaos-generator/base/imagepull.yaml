@@ -1,0 +1,39 @@
+# chaos-imagepull — references a nonexistent image tag → ImagePullBackOff.
+# Pod stays in waiting state indefinitely.
+# Fires: KubeContainerWaiting (for=1h, severity=warning) — slower than crash alerts.
+# Useful for testing ImagePullBackOff investigation path.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chaos-imagepull
+  namespace: chaos
+  labels:
+    app: chaos-imagepull
+    chaos-type: imagepull
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chaos-imagepull
+  template:
+    metadata:
+      labels:
+        app: chaos-imagepull
+        chaos-type: imagepull
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: app
+          image: nginx:this-tag-does-not-exist-xyz-20260526
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi
