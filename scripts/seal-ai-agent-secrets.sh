@@ -42,7 +42,7 @@ fi
 kubectl create secret generic k8s-ai-agent-secrets \
   --from-literal=langfuse-public-key="$LANGFUSE_PUBLIC_KEY" \
   --from-literal=langfuse-secret-key="$LANGFUSE_SECRET_KEY" \
-  "${EXTRA_ARGS[@]}" \
+  "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}" \
   --namespace "$NAMESPACE" \
   --dry-run=client -o yaml | \
   kubeseal --cert "$CERT" --format yaml \
