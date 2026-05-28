@@ -7,3 +7,4 @@ resources:
   - rbac.yaml
   - investigations-pvc.yaml
   - agent.yaml
+  - ingest-cronjob.yaml
