@@ -7,4 +7,4 @@ resources:
 images:
   - name: ghcr.io/filipcsupka/k8s-ai-agent
     newName: ghcr.io/filipcsupka/k8s-ai-agent
-    newTag: sha-a518276
+    newTag: sha-7da8be8
