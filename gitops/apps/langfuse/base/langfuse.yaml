@@ -24,7 +24,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: langfuse
-          image: langfuse/langfuse:2
+          image: langfuse/langfuse:3.176.0
           ports:
             - containerPort: 3000
           env:
