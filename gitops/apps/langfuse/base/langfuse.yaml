@@ -16,6 +16,12 @@ spec:
       labels:
         app: langfuse
     spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: langfuse
           image: langfuse/langfuse:2
