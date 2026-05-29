@@ -3,12 +3,14 @@ name: ArgoCD
 on:
   push:
     branches: [main]
-    paths:
-      - 'argocd/**'
-      - '.github/workflows/bootstrap-argocd.yml'
   schedule:
     - cron: '17 3 * * *'
   workflow_dispatch:
+  workflow_call:
+  workflow_run:
+    workflows: ["Deploy Cluster"]
+    types: [completed]
+    branches: [main]
 
 env:
   TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
