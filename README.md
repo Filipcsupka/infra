@@ -356,3 +356,31 @@ Then update the three Helm apps to use `existingSecret` instead of inline values
 | `kubectl -n argocd get pods` | Check ArgoCD health |
 | `kubectl -n argocd get applications` | Check child application state |
 | `KUBECONFIG=kubeconfig.yaml kubectl get nodes` | Verify cluster nodes |
+
+---
+
+## Backlog — AI/GPU infrastructure
+
+### Phoenix (Arize) — LLM Observability
+**Why:** Replaces Langfuse. Single pod, no ClickHouse required. OpenTelemetry-native — instruments LangGraph, Ollama calls, RAG pipeline automatically. Shows token counts, latency per call, prompt traces, RAG retrieval quality.
+
+**How to add:**
+- Deploy `arizephoenix/phoenix:latest` in `ai-chat` namespace (or dedicated `phoenix` namespace)
+- Single pod, ~512MB RAM, no external DB needed (SQLite by default, Postgres optional)
+- Instrument k8s-ai-agent: `pip install arize-phoenix-otel` + 3 lines of code
+- Exposes UI on port 6006, add Traefik Ingress at `phoenix.filipcsupka.online`
+
+**Effort:** ~2h — manifest + instrumentation code
+
+---
+
+### KEDA — GPU-aware autoscaling
+**Why:** Scale workloads (RAG API, k8s-ai-agent) based on GPU utilization or queue depth. Uses DCGM metrics already scraped by Prometheus — no extra exporters needed.
+
+**How to add:**
+- Install KEDA via Helm (`kedacore/keda` chart) in `keda` namespace
+- Add `ScaledObject` per deployment referencing `DCGM_FI_DEV_GPU_UTIL` metric from Prometheus
+- Example: scale RAG API replicas 1→3 when GPU util > 70%
+- Also useful: scale to 0 at night based on cron schedule (save GPU memory for Ollama)
+
+**Effort:** ~3h — KEDA install + ScaledObject manifests per app
