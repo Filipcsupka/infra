@@ -7,6 +7,4 @@ resources:
   - k8s-ai-agent.yaml
   - my-cv.yaml
   - vevsdesign.yaml
-  - langfuse.yaml
-  - langfuse-secrets.yaml
   - ai-agent-secrets.yaml
