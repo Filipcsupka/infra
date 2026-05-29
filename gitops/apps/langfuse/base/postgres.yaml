@@ -28,6 +28,12 @@ spec:
       labels:
         app: postgres
     spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
       containers:
         - name: postgres
           image: postgres:16-alpine
