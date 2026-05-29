@@ -91,13 +91,35 @@
         state: restarted
 
   tasks:
+    - name: Configure passwordless sudo for ansible user
+      copy:
+        dest: /etc/sudoers.d/{{ ansible_user }}-nopasswd
+        content: "{{ ansible_user }} ALL=(ALL) NOPASSWD: ALL\n"
+        owner: root
+        group: root
+        mode: "0440"
+        validate: visudo -cf %s
+      tags: [sudo, always]
+
     - name: Install dependencies
       apt:
         name:
           - curl
           - ca-certificates
+          - iptables
         state: present
         update_cache: true
+      tags: [always]
+
+    - name: Switch to iptables-legacy (nft-expr-counter missing on this kernel causes kube-proxy ClusterIP rules to fail)
+      alternatives:
+        name: "{{ item.name }}"
+        path: "{{ item.path }}"
+      loop:
+        - { name: iptables, path: /usr/sbin/iptables-legacy }
+        - { name: ip6tables, path: /usr/sbin/ip6tables-legacy }
+      notify: Restart k3s agent
+      tags: [iptables_legacy, networking]
 
     - name: Check Tailscale address on GPU worker
       command: tailscale ip -4
