@@ -55,7 +55,7 @@ spec:
             - name: OLLAMA_MODEL
               value: "qwen3:8b"
             - name: ENABLE_AUTO_APPLY
-              value: "false"
+              value: "true"
             - name: SLACK_WEBHOOK_URL
               valueFrom:
                 secretKeyRef:

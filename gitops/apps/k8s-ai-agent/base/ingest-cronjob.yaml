@@ -30,6 +30,8 @@ spec:
               env:
                 - name: INVESTIGATIONS_DIR
                   value: "/data/investigations"
+                - name: RUNBOOKS_DIR
+                  value: "/app/runbooks"
                 - name: CHROMA_HOST
                   value: "chromadb.ai-chat.svc.cluster.local"
                 - name: CHROMA_PORT
