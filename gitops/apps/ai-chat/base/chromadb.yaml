@@ -47,10 +47,14 @@ spec:
 
       containers:
         - name: chromadb
-          image: chromadb/chroma:latest
+          image: chromadb/chroma:0.6.3
           ports:
             - containerPort: 8000
           env:
+            - name: IS_PERSISTENT
+              value: "TRUE"
+            - name: PERSIST_DIRECTORY
+              value: /chroma/chroma
             - name: ANONYMIZED_TELEMETRY
               value: "FALSE"
           resources:
@@ -62,16 +66,16 @@ spec:
               memory: 1Gi
           volumeMounts:
             - name: data
-              mountPath: /data
+              mountPath: /chroma/chroma
           livenessProbe:
             httpGet:
-              path: /api/v2/heartbeat
+              path: /api/v1/heartbeat
               port: 8000
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /api/v2/heartbeat
+              path: /api/v1/heartbeat
               port: 8000
             initialDelaySeconds: 5
             periodSeconds: 10
