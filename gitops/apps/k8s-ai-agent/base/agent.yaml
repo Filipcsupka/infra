@@ -76,20 +76,6 @@ spec:
               value: "8000"
             - name: CHROMA_COLLECTION
               value: "k8s-runbooks"
-            - name: LANGFUSE_HOST
-              value: "https://langfuse.filipcsupka.online"
-            - name: LANGFUSE_PUBLIC_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: k8s-ai-agent-secrets
-                  key: langfuse-public-key
-                  optional: true
-            - name: LANGFUSE_SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: k8s-ai-agent-secrets
-                  key: langfuse-secret-key
-                  optional: true
 
           volumeMounts:
             - name: investigations
