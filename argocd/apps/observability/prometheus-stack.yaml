@@ -17,7 +17,9 @@ spec:
         fullnameOverride: monitoring
 
         crds:
+          enabled: true
           upgradeJob:
+            enabled: true
             nodeSelector:
               accelerator: nvidia
             tolerations:

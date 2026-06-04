@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - minio.yaml
+  - prometheus-crds.yaml
   - prometheus-stack.yaml
   - loki.yaml
   - dcgm-exporter.yaml
