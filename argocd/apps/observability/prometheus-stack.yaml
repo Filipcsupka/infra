@@ -173,7 +173,7 @@ spec:
               group_by: [namespace, alertname, pod]
               group_wait: 30s
               group_interval: 5m
-              repeat_interval: 12h
+              repeat_interval: 1h
               receiver: k8s-ai-agent
               routes:
                 # Watchdog is a synthetic always-firing alert — ignore it

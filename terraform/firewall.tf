@@ -36,4 +36,13 @@ resource "hcloud_firewall" "k8s" {
     source_ips  = ["0.0.0.0/0", "::/0"]
     description = "HTTPS"
   }
+
+  # Kubelet metrics — Prometheus scraping; restricted to cluster nodes only
+  rule {
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "10250"
+    source_ips  = ["178.104.235.97/32", "178.104.193.227/32"]
+    description = "Kubelet metrics (cluster-internal)"
+  }
 }
