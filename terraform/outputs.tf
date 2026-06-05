@@ -12,3 +12,8 @@ output "kubeconfig_path" {
   description = "Local kubeconfig path"
   value       = "../kubeconfig.yaml"
 }
+
+output "worker_public_ip" {
+  description = "Worker node public IP — add to ansible/inventory/hosts.ini after apply"
+  value       = hcloud_server.worker.ipv4_address
+}

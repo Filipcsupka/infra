@@ -8,5 +8,6 @@ locals {
   }
 
   control_plane_name = "${local.cluster_name}-control-plane"
+  worker_name        = "${local.cluster_name}-worker-01"
   firewall_name      = "${local.cluster_name}-firewall"
 }
