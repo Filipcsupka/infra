@@ -8,3 +8,4 @@ resources:
   - investigations-pvc.yaml
   - agent.yaml
   - ingest-cronjob.yaml
+  - discord-bot.yaml

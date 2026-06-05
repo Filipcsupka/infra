@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-bot
+  namespace: ai-agent
+  labels:
+    app: discord-bot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discord-bot
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: discord-bot
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+
+      containers:
+        - name: bot
+          image: ghcr.io/filipcsupka/k8s-ai-agent-discord-bot:latest
+          imagePullPolicy: Always
+          env:
+            - name: AGENT_URL
+              value: "http://k8s-ai-agent.ai-agent.svc.cluster.local"
+            - name: DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: discord-bot-secrets
+                  key: bot-token
+          resources:
+            requests:
+              cpu: 20m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
