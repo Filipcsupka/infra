@@ -27,6 +27,9 @@ spec:
     spec:
       serviceAccountName: default
 
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-01
+
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
