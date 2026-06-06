@@ -1,0 +1,34 @@
+name: Configure Hetzner Worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ansible/playbooks/hetzner-worker.yml'
+      - 'ansible/inventory/hosts.ini'
+      - '.github/workflows/configure-hetzner-worker.yml'
+  workflow_dispatch:
+
+jobs:
+  configure:
+    name: Run hetzner-worker playbook
+    runs-on: ubuntu-latest
+    concurrency:
+      group: hetzner-worker
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: pip install --quiet ansible
+
+      - name: Write SSH private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/hetzner_ed25519
+          chmod 600 ~/.ssh/hetzner_ed25519
+
+      - name: Run hetzner-worker playbook
+        working-directory: ansible
+        run: ansible-playbook playbooks/hetzner-worker.yml -v
