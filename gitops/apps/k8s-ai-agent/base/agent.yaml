@@ -68,6 +68,14 @@ spec:
                   name: k8s-ai-agent-secrets
                   key: discord-webhook-url
                   optional: true
+            - name: DISCORD_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: discord-bot-secrets
+                  key: bot-token
+                  optional: true
+            - name: DISCORD_CHANNEL_ID
+              value: "1080993476101029965"
             - name: INVESTIGATIONS_DIR
               value: "/data/investigations"
             - name: CHROMA_HOST
