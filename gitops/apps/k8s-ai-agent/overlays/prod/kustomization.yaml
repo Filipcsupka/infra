@@ -10,4 +10,4 @@ images:
     newTag: sha-9b6bbde
   - name: ghcr.io/filipcsupka/k8s-ai-agent-discord-bot
     newName: ghcr.io/filipcsupka/k8s-ai-agent-discord-bot
-    newTag: sha-0e1c563
+    newTag: sha-3560564
