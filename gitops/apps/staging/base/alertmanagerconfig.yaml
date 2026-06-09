@@ -1,0 +1,19 @@
+# AlertmanagerConfig — staging namespace fast route for fix-flow testing.
+# Same timing as chaos: alerts re-fire every 5min so the fix workflow can be tested quickly.
+# AlertmanagerConfig automatically adds namespace=staging matcher.
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: staging-fast-route
+  namespace: staging
+spec:
+  route:
+    receiver: staging-ai-agent
+    repeatInterval: 5m
+    groupInterval: 30s
+    groupWait: 10s
+  receivers:
+    - name: staging-ai-agent
+      webhookConfigs:
+        - url: "http://k8s-ai-agent.ai-agent.svc.cluster.local/alert"
+          sendResolved: false

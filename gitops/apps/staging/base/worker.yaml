@@ -1,0 +1,37 @@
+# staging-worker — background worker, starts healthy with 2 replicas.
+# To test scale_deployment: scale to 0 or 5 → agent proposes scaling → works.
+# To test CrashLoopBackOff restart: change command to something that exits → restart_pod works.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: staging-worker
+  namespace: staging
+  labels:
+    app: staging-worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: staging-worker
+  template:
+    metadata:
+      labels:
+        app: staging-worker
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: app
+          image: busybox:1.36
+          command: ["sh", "-c", "echo 'INFO  staging-worker started' && sleep infinity"]
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 50m
+              memory: 32Mi

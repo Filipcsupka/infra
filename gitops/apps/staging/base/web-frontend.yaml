@@ -1,0 +1,38 @@
+# staging-web — healthy nginx deployment.
+# Starts with nginx:1.25 (valid image, revision 1).
+# To test rollback: update image to a bad tag → revision 2 fires → agent proposes rollback → works.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: staging-web
+  namespace: staging
+  labels:
+    app: staging-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: staging-web
+  template:
+    metadata:
+      labels:
+        app: staging-web
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: app
+          image: nginx:1.25
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

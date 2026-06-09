@@ -1,0 +1,46 @@
+# staging-api — python HTTP server, starts healthy.
+# Memory limit 256Mi — realistic. To test OOMKilled + memory patch:
+#   lower limit to 32Mi → OOMKilled fires → agent proposes patch_deployment_memory → works.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: staging-api
+  namespace: staging
+  labels:
+    app: staging-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: staging-api
+  template:
+    metadata:
+      labels:
+        app: staging-api
+    spec:
+      nodeSelector:
+        accelerator: nvidia
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: app
+          image: python:3.12-alpine
+          command:
+            - python3
+            - -c
+            - |
+              import http.server, socketserver
+              print("INFO  staging-api starting on :8080", flush=True)
+              with socketserver.TCPServer(("", 8080), http.server.SimpleHTTPRequestHandler) as httpd:
+                  httpd.serve_forever()
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
