@@ -45,7 +45,9 @@ jobs:
           changed_files="$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")"
           printf '%s\n' "$changed_files"
 
-          if printf '%s\n' "$changed_files" | rg -q '^(argocd/values\.yaml|argocd/root-application\.yaml|\.github/workflows/bootstrap-argocd\.yml)$'; then
+          # grep, not rg — ripgrep is not preinstalled on GitHub runners and a
+          # missing binary inside an if-condition silently evaluates to false
+          if printf '%s\n' "$changed_files" | grep -Eq '^(argocd/values\.yaml|argocd/root-application\.yaml|\.github/workflows/bootstrap-argocd\.yml)$'; then
             echo "needs_upgrade=true" >> "$GITHUB_OUTPUT"
           else
             echo "needs_upgrade=false" >> "$GITHUB_OUTPUT"
