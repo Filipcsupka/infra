@@ -31,6 +31,10 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: langfuse
       server: https://kubernetes.default.svc
+    - namespace: staging
+      server: https://kubernetes.default.svc
+    - namespace: memorial
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: "*"
       kind: "*"

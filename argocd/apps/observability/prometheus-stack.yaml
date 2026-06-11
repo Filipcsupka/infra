@@ -20,12 +20,8 @@ spec:
           enabled: true
           upgradeJob:
             enabled: true
-            nodeSelector:
-              accelerator: nvidia
-            tolerations:
-              - key: nvidia.com/gpu
-                operator: Exists
-                effect: NoSchedule
+            # one-shot hook job — must NOT be pinned to the (often offline) GPU node,
+            # otherwise the ArgoCD sync operation hangs on a Pending hook pod
 
         # ── Grafana ──────────────────────────────────────────────────────────
         grafana:
@@ -224,13 +220,8 @@ spec:
                 - key: nvidia.com/gpu
                   operator: Exists
                   effect: NoSchedule
-            patch:
-              nodeSelector:
-                accelerator: nvidia
-              tolerations:
-                - key: nvidia.com/gpu
-                  operator: Exists
-                  effect: NoSchedule
+            # patch jobs are one-shot hooks — keep them schedulable on always-on nodes
+            patch: {}
           resources:
             requests:
               cpu: 50m

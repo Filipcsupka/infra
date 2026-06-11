@@ -1,3 +1,10 @@
+# Pin ALL ArgoCD components to the control-plane node.
+# Without this the scheduler free-places controller/redis on workers
+# (happened after k8s-worker-01 joined on 2026-06-05).
+global:
+  nodeSelector:
+    kubernetes.io/hostname: control-plane
+
 dex:
   enabled: false
 
