@@ -3,6 +3,22 @@
 Tento subor je kanonicky kontext pre AI asistenta pracujuceho na repo `infra`.
 Ak je nieco v konflikte medzi tymto suborom a starsim obsahom inde v projekte, preferuj tento subor.
 
+## Context Protocol (run FIRST, before answering any issue)
+
+1. Load context BEFORE replying: this file + `CLAUDE.md` + `README.md`, then ops-brain vault:
+   - `~/Documents/ops-brain/AGENTS.md` (canonical agent rules)
+   - `~/Documents/ops-brain/personal-infra/_context.md` + `personal-infra/clusters/khtz.md`
+   - then relevant note in `personal-infra/{projects,runbooks}/`
+2. Match task keywords (apps under `gitops/apps/`, ArgoCD, Traefik, cert-manager, nodes, error strings) to the right note before diagnosing.
+3. Reply only after context loaded; say which notes you used. New durable facts → propose ops-brain note update.
+
+## Execution Policy — zero approvals for read-only
+
+- Read-only diagnostics run IMMEDIATELY, never ask: kubectl get|describe|logs|events|top, helm list|get|status|template, argocd app get|list|diff, ssh checks, curl/dig, git status|log|diff, file reads. Chain them fast.
+- Approval required BEFORE any state change: kubectl apply/patch/delete/scale/restart, helm install/upgrade/rollback, argocd sync, terraform/ansible runs, secrets, git push. Present exact command/manifest diff, wait for explicit yes.
+- GitOps-only: ALL cluster changes via commits to this repo → ArgoCD. NEVER kubectl apply/patch directly.
+- terraform/ansible bezia cez GitHub Actions — nikdy lokalne.
+
 ## Projekt
 
 - Nazov: `infra`

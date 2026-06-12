@@ -1,0 +1,69 @@
+# Ported from memorial-infra/k8s/*.yaml (placeholder repo templates).
+# Jobs read env directly (dotenv/config) — envFrom covers everything they need.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: renewal-reminder
+  namespace: memorial
+spec:
+  schedule: "0 10 * * *"   # daily 10:00 UTC — decent hour for customer mail
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: k8s-worker-01
+          restartPolicy: OnFailure
+          containers:
+            - name: reminder
+              image: ghcr.io/filipcsupka/memorial-api:latest
+              command: ["node", "dist/jobs/renewal-reminder.js"]
+              envFrom:
+                - configMapRef:
+                    name: memorial-config
+                - secretRef:
+                    name: memorial-secrets
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: gallery-reaper
+  namespace: memorial
+spec:
+  schedule: "0 3 * * *"   # daily 03:00 UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          nodeSelector:
+            kubernetes.io/hostname: k8s-worker-01
+          restartPolicy: OnFailure
+          containers:
+            - name: reaper
+              image: ghcr.io/filipcsupka/memorial-api:latest
+              command: ["node", "dist/jobs/expire-galleries.js"]
+              envFrom:
+                - configMapRef:
+                    name: memorial-config
+                - secretRef:
+                    name: memorial-secrets
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi

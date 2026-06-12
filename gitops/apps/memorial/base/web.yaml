@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: memorial-web
+  namespace: memorial
+  labels:
+    app: memorial-web
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: memorial-web
+  template:
+    metadata:
+      labels:
+        app: memorial-web
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-01
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: web
+          image: ghcr.io/filipcsupka/memorial-web:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            # Runtime value (server components + /api/* rewrite proxy) points at
+            # the cluster-internal api service. The browser bundle uses the
+            # public URL baked in at image build time via the same variable.
+            - name: NEXT_PUBLIC_API_URL
+              value: http://memorial-api:3001
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: next-cache
+              mountPath: /app/.next/cache
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
+      volumes:
+        - name: next-cache
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: memorial-web
+  namespace: memorial
+spec:
+  selector:
+    app: memorial-web
+  ports:
+    - port: 3000
+      targetPort: 3000

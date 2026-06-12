@@ -1,5 +1,23 @@
 # Claude Code Configuration - RuFlo V3
 
+## Context Protocol (run FIRST, before answering any issue)
+
+This repo = GitOps source of truth for the personal Hetzner k3s cluster (`khtz`).
+
+1. Load context BEFORE replying: this file + `AGENTS.md` + `README.md`, then ops-brain vault:
+   - `~/Documents/ops-brain/AGENTS.md` (canonical agent rules)
+   - `~/Documents/ops-brain/personal-infra/_context.md` + `personal-infra/clusters/khtz.md`
+   - then relevant note in `personal-infra/{projects,runbooks}/`
+2. Match task keywords (app names under `gitops/apps/`, node names, ArgoCD, Traefik, cert-manager, error strings) to the right note before diagnosing.
+3. Reply only after context loaded; say which notes you used. New durable facts → propose ops-brain note update.
+
+## Execution Policy — zero approvals for read-only
+
+- Read-only diagnostics run IMMEDIATELY, never ask: kubectl get|describe|logs|events|top, helm list|get|status|template, argocd app get|list|diff, ssh checks, curl/dig, git status|log|diff, file reads. Chain them fast.
+- Approval required BEFORE any state change: kubectl apply/patch/delete/scale/restart, helm install/upgrade/rollback, argocd sync, terraform/ansible runs, secrets, git push. Present exact command/manifest diff, wait for explicit yes.
+- GitOps-only: ALL cluster changes via commits to this repo → ArgoCD. NEVER kubectl apply/patch directly.
+- terraform/ansible run via GitHub Actions only — never locally.
+
 ## Behavioral Rules (Always Enforced)
 
 - Do what has been asked; nothing more, nothing less

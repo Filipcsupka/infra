@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: memorial
+  namespace: memorial
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: memorial.filipcsupka.online
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: memorial-web
+                port:
+                  number: 3000
+    # public photo delivery straight from minio (anonymous download, test env)
+    - host: memorial-storage.filipcsupka.online
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio
+                port:
+                  number: 9000
+  tls:
+    - secretName: memorial-tls
+      hosts:
+        - memorial.filipcsupka.online
+    - secretName: memorial-storage-tls
+      hosts:
+        - memorial-storage.filipcsupka.online

@@ -1,0 +1,55 @@
+# Test-only SMTP catcher — UI via:
+#   kubectl -n memorial port-forward svc/mailhog 8025:8025
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailhog
+  namespace: memorial
+  labels:
+    app: mailhog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailhog
+  template:
+    metadata:
+      labels:
+        app: mailhog
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-01
+      containers:
+        - name: mailhog
+          image: mailhog/mailhog:latest
+          ports:
+            - containerPort: 1025
+            - containerPort: 8025
+          readinessProbe:
+            tcpSocket:
+              port: 1025
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailhog
+  namespace: memorial
+spec:
+  selector:
+    app: mailhog
+  ports:
+    - name: smtp
+      port: 1025
+      targetPort: 1025
+    - name: ui
+      port: 8025
+      targetPort: 8025

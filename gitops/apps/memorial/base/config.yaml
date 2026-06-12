@@ -1,0 +1,21 @@
+# Non-secret runtime config shared by api, web and cronjobs (envFrom).
+# Secret counterpart: SealedSecret memorial-secrets (gitops/sealed-secrets/memorial).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: memorial-config
+  namespace: memorial
+data:
+  PORT: "3001"
+  PAYMENT_PROVIDER: "local"
+  API_PUBLIC_URL: "https://memorial.filipcsupka.online"
+  WEB_URL: "https://memorial.filipcsupka.online"
+  MINIO_ENDPOINT: "minio"
+  MINIO_PORT: "9000"
+  MINIO_USE_SSL: "false"
+  MINIO_BUCKET: "memorial"
+  STORAGE_PUBLIC_URL: "https://memorial-storage.filipcsupka.online/memorial"
+  SMTP_HOST: "mailhog"
+  SMTP_PORT: "1025"
+  EMAIL_FROM: "Memorial <noreply@filipcsupka.online>"
+  UPLOAD_DIR: "/tmp/uploads"

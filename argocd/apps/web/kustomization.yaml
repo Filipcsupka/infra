@@ -9,3 +9,5 @@ resources:
   - vevsdesign.yaml
   - staging.yaml
   - ai-agent-secrets.yaml
+  - memorial.yaml
+  - memorial-secrets.yaml
