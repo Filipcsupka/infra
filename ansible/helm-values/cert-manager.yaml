@@ -3,11 +3,20 @@ crds:
 
 replicaCount: 1
 
+nodeSelector:
+  kubernetes.io/hostname: control-plane
+
 webhook:
   replicaCount: 1
+  nodeSelector:
+    kubernetes.io/hostname: control-plane
 
 cainjector:
   replicaCount: 1
+  nodeSelector:
+    kubernetes.io/hostname: control-plane
 
 startupapicheck:
   enabled: true
+  nodeSelector:
+    kubernetes.io/hostname: control-plane

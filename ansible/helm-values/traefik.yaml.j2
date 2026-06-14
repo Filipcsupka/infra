@@ -1,6 +1,9 @@
 deployment:
   replicas: 1
 
+nodeSelector:
+  kubernetes.io/hostname: control-plane
+
 updateStrategy:
   type: Recreate
 
