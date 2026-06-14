@@ -46,6 +46,18 @@
         - control_plane_taint.rc != 0
         - "'not found' not in control_plane_taint.stderr"
 
+    - name: Pin bundled kube-system deployments to control-plane
+      command: >
+        kubectl -n kube-system patch deployment {{ item }}
+        --type=merge
+        -p '{"spec":{"template":{"spec":{"nodeSelector":{"kubernetes.io/hostname":"control-plane"}}}}}'
+      loop:
+        - coredns
+        - local-path-provisioner
+        - metrics-server
+      register: kube_system_pin
+      changed_when: "'patched' in kube_system_pin.stdout"
+
     # ── Traefik ingress ───────────────────────────────────────────────────────
     # k3s bundled Traefik and ServiceLB are disabled above. Install Traefik
     # explicitly with hostPorts so the single Hetzner node serves HTTP/HTTPS
