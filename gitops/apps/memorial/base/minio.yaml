@@ -38,9 +38,10 @@ spec:
       containers:
         - name: minio
           image: minio/minio:latest
-          args: ["server", "/data"]
+          args: ["server", "/data", "--console-address", ":9001"]
           ports:
             - containerPort: 9000
+            - containerPort: 9001
           env:
             - name: MINIO_ROOT_USER
               valueFrom:
@@ -88,8 +89,12 @@ spec:
   selector:
     app: minio
   ports:
-    - port: 9000
+    - name: s3
+      port: 9000
       targetPort: 9000
+    - name: console
+      port: 9001
+      targetPort: 9001
 ---
 # Bucket bootstrap — re-runs on every sync, idempotent (--ignore-existing).
 # Anonymous download mirrors the local dev compose; production target is

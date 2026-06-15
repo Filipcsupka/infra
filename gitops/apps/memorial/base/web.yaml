@@ -33,11 +33,23 @@ spec:
           ports:
             - containerPort: 3000
           env:
-            # Runtime value (server components + /api/* rewrite proxy) points at
-            # the cluster-internal api service. The browser bundle uses the
-            # public URL baked in at image build time via the same variable.
+            # /api/* rewrite proxy (read at runtime by next.config) → internal api.
             - name: NEXT_PUBLIC_API_URL
               value: http://memorial-api:3001
+            # Server-component fetches (admin/gallery/status). MUST be a non-public
+            # var: NEXT_PUBLIC_* is inlined at image build to the localhost build-arg
+            # and cannot be overridden at runtime inside the pod (→ ECONNREFUSED).
+            - name: API_INTERNAL_URL
+              value: http://memorial-api:3001
+            # Public web origin shown in /admin (NFC + upload links).
+            - name: WEB_PUBLIC_URL
+              value: https://memorial.filipcsupka.online
+            # Admin portal auth: login check + server-action x-admin-token header.
+            - name: ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: memorial-secrets
+                  key: ADMIN_TOKEN
           readinessProbe:
             httpGet:
               path: /
