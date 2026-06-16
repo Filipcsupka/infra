@@ -10,4 +10,4 @@ images:
   newTag: sha-ac9d413
 - name: ghcr.io/filipcsupka/memorial-web
   newName: ghcr.io/filipcsupka/memorial-web
-  newTag: sha-5cf3ce0
+  newTag: sha-fd3cea6
