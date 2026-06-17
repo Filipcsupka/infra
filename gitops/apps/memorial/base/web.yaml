@@ -44,12 +44,25 @@ spec:
             # Public web origin shown in /admin (NFC + upload links).
             - name: WEB_PUBLIC_URL
               value: https://memorial.filipcsupka.online
-            # Admin portal auth: login check + server-action x-admin-token header.
+            # Admin portal: internal web->api service credential (x-admin-token
+            # header) + HMAC key that signs admin_session cookies.
             - name: ADMIN_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: memorial-secrets
                   key: ADMIN_TOKEN
+            # Admin login (username/password). Must exist in memorial-secrets or
+            # /admin/login can never succeed (admin lockout).
+            - name: ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: memorial-secrets
+                  key: ADMIN_USERNAME
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: memorial-secrets
+                  key: ADMIN_PASSWORD
           readinessProbe:
             httpGet:
               path: /
