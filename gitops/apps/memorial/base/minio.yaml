@@ -96,9 +96,11 @@ spec:
       port: 9001
       targetPort: 9001
 ---
-# Bucket bootstrap — re-runs on every sync, idempotent (--ignore-existing).
-# Anonymous download mirrors the local dev compose; production target is
-# signed URLs on external S3/R2, this stack is the test environment.
+# Bucket bootstrap — re-runs on every sync, idempotent.
+# Bucket is PRIVATE: the API serves photos via short-lived presigned URLs
+# (memorial-api src/services/storage.ts getPhotoUrl). Versioning is enabled so
+# an accidental delete/overwrite is recoverable. Deploy the presigned-URL API
+# build BEFORE this flips to private, or live galleries 403 until it rolls.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -134,7 +136,8 @@ spec:
             - |
               mc alias set local http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" &&
               mc mb local/memorial --ignore-existing &&
-              mc anonymous set download local/memorial
+              mc anonymous set none local/memorial &&
+              mc version enable local/memorial
           resources:
             requests:
               cpu: 20m
