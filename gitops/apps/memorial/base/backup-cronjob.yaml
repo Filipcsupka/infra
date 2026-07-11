@@ -71,8 +71,8 @@ metadata:
 spec:
   schedule: "0 2 * * *"   # daily 02:00 UTC — offset from reaper 03:00 / reminder 10:00
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 3   # keep last 3 good runs (pods + logs) for inspection
+  failedJobsHistoryLimit: 3       # keep last 3 failed runs (pods + logs) for inspection
   jobTemplate:
     spec:
       backoffLimit: 1
@@ -83,7 +83,9 @@ spec:
           dnsPolicy: ClusterFirstWithHostNet
           nodeSelector:
             kubernetes.io/hostname: k8s-worker-01
-          restartPolicy: OnFailure
+          # Never (not OnFailure): each attempt is a fresh pod, so a failed
+          # run's logs survive instead of being wiped by an in-place restart.
+          restartPolicy: Never
           containers:
             - name: backup
               image: alpine:3.20
