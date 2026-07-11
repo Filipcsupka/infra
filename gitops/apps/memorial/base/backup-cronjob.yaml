@@ -33,34 +33,35 @@ data:
 
     export RESTIC_REPOSITORY="sftp:memorialbak@100.78.124.69:/C:/MEMORIAL-BACKUP/restic-repo"
     export RESTIC_CACHE_DIR=/tmp/restic-cache
-    R="restic -o sftp.command=$SFTP_CMD"
+    # wrap restic so the multi-word sftp.command stays a single quoted arg
+    rc() { restic -o "sftp.command=$SFTP_CMD" "$@"; }
 
     # --- init repo on first run ---
-    if ! $R snapshots >/dev/null 2>&1; then
+    if ! rc snapshots >/dev/null 2>&1; then
       echo "[backup] initializing restic repo"
-      $R init
+      rc init
     fi
 
     # --- postgres ---
     echo "[backup] dumping postgres"
     PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h postgres -U memorial -d memorial \
       --no-owner --clean --if-exists \
-      | $R backup --stdin --stdin-filename memorial-postgres.sql --tag postgres --host memorial
+      | rc backup --stdin --stdin-filename memorial-postgres.sql --tag postgres --host memorial
 
     # --- minio bucket ---
     echo "[backup] mirroring minio bucket $MINIO_BUCKET"
     mc alias set src "http://${MINIO_ENDPOINT}:${MINIO_PORT}" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
     rm -rf /scratch/minio && mkdir -p /scratch/minio
     mc mirror --overwrite --quiet src/"$MINIO_BUCKET" /scratch/minio
-    $R backup /scratch/minio --tag minio --host memorial
+    rc backup /scratch/minio --tag minio --host memorial
 
     # --- retention ---
     echo "[backup] pruning"
-    $R forget --tag postgres --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
-    $R forget --tag minio    --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+    rc forget --tag postgres --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+    rc forget --tag minio    --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
 
     echo "[backup] $(date -u) done"
-    $R snapshots --compact | tail -5
+    rc snapshots --compact | tail -5
 ---
 apiVersion: batch/v1
 kind: CronJob
