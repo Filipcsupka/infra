@@ -11,6 +11,7 @@ resources:
   - web.yaml
   - ingress.yaml
   - cronjobs.yaml
+  - backup-cronjob.yaml
 
 configMapGenerator:
   - name: memorial-db-init

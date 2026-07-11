@@ -3,3 +3,4 @@ kind: Kustomization
 
 resources:
   - memorial-secrets.yaml
+  - memorial-backup-secrets.yaml

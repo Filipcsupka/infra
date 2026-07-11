@@ -1,0 +1,128 @@
+# Nightly offsite backup: postgres (pg_dump) + minio bucket → restic repo on the
+# Windows mini-PC over Tailscale (SFTP via built-in OpenSSH).
+# restic gives dedup + encryption-at-rest + incremental + snapshot retention.
+#
+# Network: hostNetwork so the pod uses the node's tailscale0 (reaches 100.78.124.69);
+# ClusterFirstWithHostNet keeps CoreDNS so `postgres`/`minio` service names resolve.
+# Pinned to k8s-worker-01 (runs postgres, minio, and tailscale).
+#
+# v1 installs tools at runtime (apk + mc). TODO harden: bake a pinned memorial-backup image.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: memorial-backup-script
+  namespace: memorial
+data:
+  backup.sh: |
+    #!/bin/sh
+    set -eu
+    echo "[backup] $(date -u) start"
+
+    # --- tools (pinned by alpine 3.20 repo; mc pinned release) ---
+    apk add --no-cache postgresql16-client restic openssh-client curl ca-certificates >/dev/null
+    if ! command -v mc >/dev/null 2>&1; then
+      curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2024-11-21T17-21-54Z \
+        -o /usr/local/bin/mc
+      chmod +x /usr/local/bin/mc
+    fi
+
+    # --- ssh key (secret mount is read-only; ssh needs 0600) ---
+    cp /keys/ssh_key /tmp/id
+    chmod 600 /tmp/id
+    SFTP_CMD="ssh -i /tmp/id -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/tmp/known_hosts -o ConnectTimeout=15 memorialbak@100.78.124.69 -s sftp"
+
+    export RESTIC_REPOSITORY="sftp:memorialbak@100.78.124.69:/C:/MEMORIAL-BACKUP/restic-repo"
+    export RESTIC_CACHE_DIR=/tmp/restic-cache
+    R="restic -o sftp.command=$SFTP_CMD"
+
+    # --- init repo on first run ---
+    if ! $R snapshots >/dev/null 2>&1; then
+      echo "[backup] initializing restic repo"
+      $R init
+    fi
+
+    # --- postgres ---
+    echo "[backup] dumping postgres"
+    PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -h postgres -U memorial -d memorial \
+      --no-owner --clean --if-exists \
+      | $R backup --stdin --stdin-filename memorial-postgres.sql --tag postgres --host memorial
+
+    # --- minio bucket ---
+    echo "[backup] mirroring minio bucket $MINIO_BUCKET"
+    mc alias set src "http://${MINIO_ENDPOINT}:${MINIO_PORT}" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null
+    rm -rf /scratch/minio && mkdir -p /scratch/minio
+    mc mirror --overwrite --quiet src/"$MINIO_BUCKET" /scratch/minio
+    $R backup /scratch/minio --tag minio --host memorial
+
+    # --- retention ---
+    echo "[backup] pruning"
+    $R forget --tag postgres --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+    $R forget --tag minio    --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+
+    echo "[backup] $(date -u) done"
+    $R snapshots --compact | tail -5
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: memorial-backup
+  namespace: memorial
+spec:
+  schedule: "0 2 * * *"   # daily 02:00 UTC — offset from reaper 03:00 / reminder 10:00
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 3600
+      template:
+        spec:
+          hostNetwork: true
+          dnsPolicy: ClusterFirstWithHostNet
+          nodeSelector:
+            kubernetes.io/hostname: k8s-worker-01
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: alpine:3.20
+              command: ["/bin/sh", "/scripts/backup.sh"]
+              env:
+                - name: RESTIC_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: memorial-backup-secrets
+                      key: RESTIC_PASSWORD
+              envFrom:
+                - configMapRef:
+                    name: memorial-config     # MINIO_ENDPOINT / MINIO_PORT / MINIO_BUCKET
+                - secretRef:
+                    name: memorial-secrets     # POSTGRES_PASSWORD / MINIO_ROOT_USER / MINIO_ROOT_PASSWORD
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts
+                - name: sshkey
+                  mountPath: /keys
+                  readOnly: true
+                - name: scratch
+                  mountPath: /scratch
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: script
+              configMap:
+                name: memorial-backup-script
+            - name: sshkey
+              secret:
+                secretName: memorial-backup-secrets
+                items:
+                  - key: ssh_key
+                    path: ssh_key
+                defaultMode: 0400
+            - name: scratch
+              emptyDir: {}
