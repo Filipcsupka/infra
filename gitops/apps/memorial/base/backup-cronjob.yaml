@@ -55,10 +55,10 @@ data:
     mc mirror --overwrite --quiet src/"$MINIO_BUCKET" /scratch/minio
     rc backup /scratch/minio --tag minio --host memorial
 
-    # --- retention ---
-    echo "[backup] pruning"
-    rc forget --tag postgres --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
-    rc forget --tag minio    --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune
+    # --- retention: keep 1 week, prune older ---
+    echo "[backup] pruning (keep 7d)"
+    rc forget --tag postgres --keep-within 7d --prune
+    rc forget --tag minio    --keep-within 7d --prune
 
     echo "[backup] $(date -u) done"
     rc snapshots --compact | tail -5
