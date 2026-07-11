@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS galleries (
 CREATE TABLE IF NOT EXISTS photos (
   id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
   gallery_id  UUID    NOT NULL REFERENCES galleries(id),
-  storage_key VARCHAR(512) NOT NULL,
+  storage_key   VARCHAR(512) NOT NULL,
+  thumbnail_key VARCHAR(512),
   mime_type   VARCHAR(100),
   width       INTEGER,
   height      INTEGER,
