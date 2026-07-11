@@ -1,7 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# observability (monitoring + Loki + MinIO + dcgm + alloy) is intentionally NOT
+# Argo-managed: it lives on the GPU node k3sgpu, which is normally powered off.
+# Argo-reconciling unschedulable apps caused API/kine storms → apply these
+# manually when the GPU node is up. Manifests kept under ./observability.
 resources:
   - core
-  - observability
   - web

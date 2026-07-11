@@ -1,13 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# AI stack (ai-chat, k8s-ai-agent + its secret) runs on the GPU node k3sgpu,
+# normally powered off — kept OUT of Argo to avoid reconcile storms. Apply the
+# manifests manually when the GPU node is up.
 resources:
-  - ai-chat.yaml
   - chaos-generator.yaml
-  - k8s-ai-agent.yaml
   - my-cv.yaml
   - vevsdesign.yaml
   - staging.yaml
-  - ai-agent-secrets.yaml
   - memorial.yaml
   - memorial-secrets.yaml
