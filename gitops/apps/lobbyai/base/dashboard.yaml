@@ -23,6 +23,9 @@ spec:
       labels:
         app: lobbyai-dashboard
     spec:
+      # k3sgpu has no node-level GHCR auth; private images need this pull secret.
+      imagePullSecrets:
+        - name: ghcr
       nodeSelector:
         kubernetes.io/hostname: k3sgpu
       tolerations:
