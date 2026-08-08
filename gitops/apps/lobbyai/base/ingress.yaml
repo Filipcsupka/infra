@@ -1,0 +1,40 @@
+# Phase 0 test hosts on filipcsupka.online (SaaS domain TBD, Phase 2).
+#   lobby.filipcsupka.online      → dashboard (self-service admin)
+#   lobby-api.filipcsupka.online  → API (public: widget.js, chat.html, POST /chat)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lobbyai
+  namespace: lobbyai
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: lobby.filipcsupka.online
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lobbyai-dashboard
+                port:
+                  number: 3001
+    - host: lobby-api.filipcsupka.online
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lobbyai-api
+                port:
+                  number: 8080
+  tls:
+    - secretName: lobbyai-tls
+      hosts:
+        - lobby.filipcsupka.online
+    - secretName: lobbyai-api-tls
+      hosts:
+        - lobby-api.filipcsupka.online

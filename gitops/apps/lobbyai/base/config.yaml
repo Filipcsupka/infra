@@ -1,0 +1,13 @@
+# Non-secret runtime config for the LobbyAI API (envFrom).
+# Secret counterpart (LOBBYAI_ADMIN_TOKEN, DATABASE_URL with password) = Secret
+# lobbyai-secrets — sealed under gitops/sealed-secrets/lobbyai, or created imperatively
+# for Phase 0 testing.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lobbyai-config
+  namespace: lobbyai
+data:
+  # Ollama on the GPU node, reached via the headless Service + EndpointSlice below.
+  OLLAMA_URL: "http://ollama.lobbyai.svc.cluster.local:11434"
+  CHAT_MODEL: "qwen3:8b"

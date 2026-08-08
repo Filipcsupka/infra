@@ -1,0 +1,85 @@
+# LobbyAI API — FastAPI (chat widget endpoint + admin CRUD).
+# Testing: pinned to the GPU node (k3sgpu) alongside Ollama. Because the whole app
+# lives on the often-powered-off GPU node, it must NOT be added to the Argo
+# app-of-apps (would storm the API when the node is down) — apply manually when up.
+# Image tag updated by CI.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lobbyai-api
+  namespace: lobbyai
+  labels:
+    app: lobbyai-api
+    app.kubernetes.io/version: "REPLACED_BY_CI"
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: lobbyai-api
+  template:
+    metadata:
+      labels:
+        app: lobbyai-api
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k3sgpu
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+      containers:
+        - name: api
+          image: ghcr.io/filipcsupka/lobbyai-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: lobbyai-config
+            - secretRef:
+                name: lobbyai-secrets
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lobbyai-api
+  namespace: lobbyai
+spec:
+  selector:
+    app: lobbyai-api
+  ports:
+    - port: 8080
+      targetPort: 8080
