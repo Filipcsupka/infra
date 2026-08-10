@@ -63,3 +63,20 @@ CREATE TABLE IF NOT EXISTS compiled_context (
     compiled_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (tenant_id, lang)
 );
+
+-- ── Logo bytes (Pro branding). Served via /widget/logo?key= with long cache. ────
+CREATE TABLE IF NOT EXISTS tenant_logos (
+    tenant_id    UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+    content_type TEXT NOT NULL,
+    data         BYTEA NOT NULL,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ── Customer onboarding links ─────────────────────────────────────────────────
+-- Created after checkout/payment later. For Phase 0, admin can create a hotel
+-- and send this single-purpose link to the customer.
+CREATE TABLE IF NOT EXISTS tenant_onboarding_links (
+    tenant_id  UUID PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+    token      TEXT UNIQUE NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
