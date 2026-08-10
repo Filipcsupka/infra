@@ -80,3 +80,18 @@ CREATE TABLE IF NOT EXISTS tenant_onboarding_links (
     token      TEXT UNIQUE NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- ── Lightweight admin observability ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS chat_events (
+    id           BIGSERIAL PRIMARY KEY,
+    tenant_id    UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    lang         TEXT NOT NULL DEFAULT 'en',
+    question     TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'ok', -- ok | error
+    ttft_ms      INT,
+    total_ms     INT,
+    answer_chars INT NOT NULL DEFAULT 0,
+    error        TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS chat_events_tenant_created_idx ON chat_events(tenant_id, created_at DESC);
