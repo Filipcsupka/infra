@@ -19,6 +19,8 @@ spec:
     metadata:
       labels:
         app: memorial-api
+      annotations:
+        memorare.sk/domain-cutover: "2026-08-11"
     spec:
       nodeSelector:
         kubernetes.io/hostname: k8s-worker-01

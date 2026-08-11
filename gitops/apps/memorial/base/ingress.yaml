@@ -8,7 +8,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: memorial.filipcsupka.online
+    - host: memorare.sk
       http:
         paths:
           - path: /
@@ -18,8 +18,18 @@ spec:
                 name: memorial-web
                 port:
                   number: 3000
-    # public photo delivery straight from minio (anonymous download, test env)
-    - host: memorial-storage.filipcsupka.online
+    - host: www.memorare.sk
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: memorial-web
+                port:
+                  number: 3000
+    # public photo delivery via presigned MinIO URLs
+    - host: storage.memorare.sk
       http:
         paths:
           - path: /
@@ -30,9 +40,10 @@ spec:
                 port:
                   number: 9000
   tls:
-    - secretName: memorial-tls
+    - secretName: memorare-tls
       hosts:
-        - memorial.filipcsupka.online
-    - secretName: memorial-storage-tls
+        - memorare.sk
+        - www.memorare.sk
+    - secretName: memorare-storage-tls
       hosts:
-        - memorial-storage.filipcsupka.online
+        - storage.memorare.sk
