@@ -17,5 +17,7 @@ data:
   STORAGE_PUBLIC_URL: "https://storage.memorare.sk/memorial"
   SMTP_HOST: "mailhog"
   SMTP_PORT: "1025"
+  EMAIL_PROVIDER: "resend"
   EMAIL_FROM: "Memorare <noreply@memorare.sk>"
+  EMAIL_REPLY_TO: "info@memorare.sk"
   UPLOAD_DIR: "/tmp/uploads"
