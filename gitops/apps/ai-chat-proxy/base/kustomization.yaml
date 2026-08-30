@@ -1,5 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
 resources:
-  - k8s-ai-agent-secrets.yaml
-  - discord-bot-secrets.yaml
+  - namespace.yaml
+  - rag-api-svc.yaml
+  - ingress.yaml

@@ -1,9 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# AI stack (ai-chat, k8s-ai-agent + its secret) runs on the GPU node k3sgpu,
-# normally powered off — kept OUT of Argo to avoid reconcile storms. Apply the
-# manifests manually when the GPU node is up.
+# k3sgpu was removed from this cluster entirely on 2026-08-30 (see ops-brain
+# personal-infra/clusters/khtz.md) — it now runs standalone, split off into
+# the ai-infra repo. ai-chat-proxy below is a routing-only shim (headless
+# Service + EndpointSlice + Ingress pointing at the standalone box's
+# Tailscale IP) with no pod scheduled on it, so it's safe to Argo-manage
+# with automated selfHeal like everything else here.
 resources:
   - chaos-generator.yaml
   - my-cv.yaml
@@ -11,3 +14,4 @@ resources:
   - staging.yaml
   - memorial.yaml
   - memorial-secrets.yaml
+  - ai-chat.yaml

@@ -173,175 +173,25 @@ Notes:
 
 ---
 
-## GPU worker node
+## AI/GPU workloads — moved out (2026-08-30)
 
-The cluster can run an additional NVIDIA GPU worker over Tailscale. Hetzner remains the control-plane/worker node for public apps, while the home GPU node is tainted for explicit AI workloads.
+This repo used to run a GPU worker node (`k3sgpu`, joined over Tailscale)
+carrying the observability stack (Prometheus/Grafana/Loki/dcgm), `ai-chat`,
+`k8s-ai-agent`, and `lobbyai`. That node is **no longer a member of this
+cluster** — it caused real incidents (control-plane load spikes, API
+TLS-handshake timeouts) whenever it dropped off its home network link, and
+Argo reconciling apps pinned to an unreachable node made it worse.
 
-Current node addresses:
+Everything GPU/AI-related now lives in
+[`ai-infra`](https://github.com/Filipcsupka/ai-infra), running standalone
+on that box (no k3s membership at all). See that repo's README for what
+moved and why.
 
-| Node | Role | Public IP | Tailscale IP |
-|---|---|---:|---:|
-| `family-webapp` | k3s server + public app worker | `178.104.235.97` | `100.82.16.35` |
-| `k3sgpu` | NVIDIA GPU worker | n/a | `100.86.152.16` |
-
-Prerequisites:
-
-- Hetzner control-plane and GPU worker are logged in to the same Tailscale tailnet.
-- GPU worker has the NVIDIA driver and `nvidia-container-runtime` installed.
-- SSH key access works for `root@family-webapp` and `ja@k3sgpu`.
-- For the GPU worker, either use `--ask-become-pass` or configure passwordless sudo for automation.
-
-Run:
-
-```bash
-ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/gpu-worker.yml --ask-become-pass
-```
-
-The playbook:
-
-- configures k3s flannel/node networking to use `tailscale0`;
-- reads the k3s join token from the control-plane without committing it;
-- joins `k3sgpu` as a k3s agent with `--default-runtime=nvidia`;
-- labels and taints the GPU node with `accelerator=nvidia` and `nvidia.com/gpu=true:NoSchedule`;
-- installs NVIDIA `k8s-device-plugin` and restricts it to GPU nodes.
-
-Verify:
-
-```bash
-KUBECONFIG=kubeconfig.yaml kubectl get nodes -o wide
-KUBECONFIG=kubeconfig.yaml kubectl get node k3sgpu \
-  -o jsonpath='{.status.allocatable.nvidia\.com/gpu}{" GPU\n"}'
-KUBECONFIG=kubeconfig.yaml kubectl -n kube-system get pods \
-  -l name=nvidia-device-plugin-ds -o wide
-```
-
-GPU workloads must request `nvidia.com/gpu` and tolerate the GPU taint:
-
-```yaml
-tolerations:
-  - key: nvidia.com/gpu
-    operator: Exists
-    effect: NoSchedule
-nodeSelector:
-  accelerator: nvidia
-resources:
-  limits:
-    nvidia.com/gpu: 1
-```
-
----
-
-## Monitoring stack
-
-The observability stack is currently pinned to the GPU worker node (`k3sgpu`, `accelerator: nvidia`) unless a chart component explicitly requires something else.
-The intended telemetry flow is:
-
-- `dcgm-exporter` exposes NVIDIA GPU metrics
-- Prometheus scrapes those metrics via `ServiceMonitor`
-- Grafana reads them from the default `Prometheus` datasource
-
-This is the preferred model for this repo. GPU metrics are not supposed to use a separate Grafana datasource.
-
-### Apps
-
-| ArgoCD app | Chart | Namespace | Purpose |
-|---|---|---|---|
-| `prometheus-stack` | `kube-prometheus-stack` | `monitoring` | Prometheus + Grafana + node-exporter + kube-state-metrics |
-| `dcgm-exporter` | `nvidia/dcgm-exporter` | `monitoring` | NVIDIA GPU metrics (RTX 2070) |
-| `minio` | `minio/minio` | `monitoring` | S3-compatible storage for Loki |
-| `loki` | `grafana/loki` | `monitoring` | Log aggregation, single-binary mode |
-| `alloy` | `grafana/alloy` | `monitoring` | Log collection |
-| `sealed-secrets` | `sealed-secrets` | `kube-system` | SealedSecret controller |
-| `monitoring-secrets` | kustomize | `monitoring` | Decrypted secrets from `gitops/sealed-secrets/` |
-| `monitoring` | kustomize | `monitoring` | Uptime Kuma proxy (existing, unchanged) |
-
-### Grafana
-
-URL: `https://grafana.filipcsupka.online`  
-Default credentials: `admin` / `prom-operator` ← **change after first login**
-
-DNS: Add Cloudflare A record `grafana` → `178.104.235.97` (same as `ai`).
-
-Pre-provisioned dashboards (auto-pulled from grafana.com on startup):
-
-| ID | Dashboard |
-|---|---|
-| 23382 | NVIDIA DCGM Dashboard for Kubernetes |
-| 15757 | Kubernetes — Global view |
-| 15759 | Kubernetes — Nodes |
-| 15760 | Kubernetes — Pods |
-| 1860 | Node Exporter Full |
-| 13639 | Loki log explorer |
-
-### Key settings
-
-- Prometheus retention: **1 day**, 5 Gi PVC
-- Loki retention: **1 day**, MinIO (S3) backend, 2 Gi WAL PVC
-- MinIO storage: **10 Gi** PVC, bucket `loki` auto-created
-- AlertManager: **disabled**
-- Alloy: currently GPU-pinned in this repo state
-
-### Current live state and handoff notes
-
-As of `2026-05-22`:
-
-- the repo uses an App-of-Apps model
-- `infra-root` manages `argocd/projects/**` and `argocd/apps/**`
-- GitHub Actions workflow model is intentionally reduced to:
-  - `Deploy Cluster`
-  - `ArgoCD`
-- `ArgoCD` runs on commits touching `argocd/**`, daily, and on manual dispatch
-- `Deploy Cluster` is the only full bootstrap / rebuild workflow
-
-Observability-specific notes:
-
-- `dcgm-exporter` is configured with `serviceMonitor.enabled: true`
-- Prometheus scrape path is:
-  - `ServiceMonitor dcgm-exporter`
-  - `Service dcgm-exporter`
-  - endpoint backing the current pod on `k3sgpu`
-- the Grafana GPU dashboard is configured to use the default `Prometheus` datasource
-- the extra temporary `dcgm` Grafana datasource was removed from git and from the live datasource ConfigMap
-
-Current blocker to remember:
-
-- ArgoCD can stay `Progressing` on apps with ingresses because Traefik was not publishing `status.loadBalancer`
-- this was fixed in repo by setting Traefik Helm arg:
-  - `providers.kubernetesIngress.ingressEndpoint.ip={{ ansible_host }}`
-- that change lives in `ansible/playbooks/k3s.yml`
-- it requires running `Deploy Cluster` so Traefik is upgraded on the cluster
-- until that rollout happens, apps such as `prometheus-stack` may keep waiting on ingress health even when pods are healthy
-
-What to do next when resuming:
-
-1. Run `Deploy Cluster` once so Traefik starts publishing ingress status.
-2. Re-check `kubectl get ingress -A` and confirm ingresses have a load balancer address.
-3. Re-check `kubectl -n argocd get applications`.
-4. Validate the Grafana GPU dashboard again after `prometheus-stack` reaches healthy/synced.
-
-### Sealed secrets (TODO — do after first deploy)
-
-Credentials are currently **hardcoded** in Helm values (private repo, POC).
-Replace them with SealedSecrets once the controller is running:
-
-```bash
-# 1. Edit the passwords in the script
-vim scripts/seal-monitoring-secrets.sh
-
-# 2. Run it (requires kubeseal + kubectl in PATH, controller must be Running)
-KUBECONFIG=kubeconfig.yaml bash scripts/seal-monitoring-secrets.sh
-
-# 3. Commit the generated files
-git add gitops/sealed-secrets/ && git commit -m "secrets: seal monitoring credentials" && git push
-```
-
-Then update the three Helm apps to use `existingSecret` instead of inline values:
-
-| App | Secret name | Helm keys to change |
-|---|---|---|
-| `prometheus-stack` | `grafana-admin-secret` | `grafana.admin.existingSecret` |
-| `minio` | `minio-root-secret` | `existingSecret` |
-| `loki` | `loki-minio-secret` | inject via `singleBinary.extraEnvFrom` |
+The one thing that stays here: `gitops/apps/ai-chat-proxy` — a routing-only
+shim (headless Service + manually-maintained EndpointSlice + Ingress) that
+lets `ai.filipcsupka.online` reach the standalone box over Tailscale. It has
+no pod scheduled on it, so unlike the old setup it's safe to Argo-manage
+with automated selfHeal.
 
 ---
 
@@ -356,31 +206,3 @@ Then update the three Helm apps to use `existingSecret` instead of inline values
 | `kubectl -n argocd get pods` | Check ArgoCD health |
 | `kubectl -n argocd get applications` | Check child application state |
 | `KUBECONFIG=kubeconfig.yaml kubectl get nodes` | Verify cluster nodes |
-
----
-
-## Backlog — AI/GPU infrastructure
-
-### Phoenix (Arize) — LLM Observability
-**Why:** Replaces Langfuse. Single pod, no ClickHouse required. OpenTelemetry-native — instruments LangGraph, Ollama calls, RAG pipeline automatically. Shows token counts, latency per call, prompt traces, RAG retrieval quality.
-
-**How to add:**
-- Deploy `arizephoenix/phoenix:latest` in `ai-chat` namespace (or dedicated `phoenix` namespace)
-- Single pod, ~512MB RAM, no external DB needed (SQLite by default, Postgres optional)
-- Instrument k8s-ai-agent: `pip install arize-phoenix-otel` + 3 lines of code
-- Exposes UI on port 6006, add Traefik Ingress at `phoenix.filipcsupka.online`
-
-**Effort:** ~2h — manifest + instrumentation code
-
----
-
-### KEDA — GPU-aware autoscaling
-**Why:** Scale workloads (RAG API, k8s-ai-agent) based on GPU utilization or queue depth. Uses DCGM metrics already scraped by Prometheus — no extra exporters needed.
-
-**How to add:**
-- Install KEDA via Helm (`kedacore/keda` chart) in `keda` namespace
-- Add `ScaledObject` per deployment referencing `DCGM_FI_DEV_GPU_UTIL` metric from Prometheus
-- Example: scale RAG API replicas 1→3 when GPU util > 70%
-- Also useful: scale to 0 at night based on cron schedule (save GPU memory for Ollama)
-
-**Effort:** ~3h — KEDA install + ScaledObject manifests per app
