@@ -7,8 +7,15 @@ metadata:
   namespace: memorial
 data:
   PORT: "3001"
-  PAYMENT_PROVIDER: "local"
+  # 24pay public sandbox. These are vendor-published test credentials, never
+  # production merchant credentials. Production values will move to the
+  # SealedSecret before the live-gateway cutover.
+  PAYMENT_PROVIDER: "24pay"
   API_PUBLIC_URL: "https://memorare.sk"
+  TWENTYFOURPAY_MID: "demoOMED"
+  TWENTYFOURPAY_ESHOP_ID: "11111111"
+  TWENTYFOURPAY_KEY: "1234567812345678123456781234567812345678123456781234567812345678"
+  TWENTYFOURPAY_GATEWAY_URL: "https://test.24-pay.eu/pay_gate/paygt"
   WEB_URL: "https://memorare.sk"
   MINIO_ENDPOINT: "minio"
   MINIO_PORT: "9000"
