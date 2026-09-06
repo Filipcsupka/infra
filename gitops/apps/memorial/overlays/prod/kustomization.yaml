@@ -7,7 +7,7 @@ resources:
 images:
 - name: ghcr.io/filipcsupka/memorial-api
   newName: ghcr.io/filipcsupka/memorial-api
-  newTag: sha-f99e79f
+  newTag: sha-d7eb5b0
 - name: ghcr.io/filipcsupka/memorial-web
   newName: ghcr.io/filipcsupka/memorial-web
   newTag: sha-5ecc7c0
