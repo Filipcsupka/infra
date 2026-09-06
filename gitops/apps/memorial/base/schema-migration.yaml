@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: memorial-schema-migration
+  namespace: memorial
+  annotations:
+    # The database Deployment is in the default wave (0). Argo waits for it
+    # to become Healthy before this one-shot migration, then rolls the API.
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-01
+      containers:
+        - name: migrate
+          image: postgres:16-alpine
+          command:
+            - /bin/sh
+            - -ec
+            - >-
+              psql -h postgres -U memorial -d memorial -c
+              'ALTER TABLE orders ADD COLUMN IF NOT EXISTS pending_pin_hash VARCHAR(255);'
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: memorial-secrets
+                  key: POSTGRES_PASSWORD
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi

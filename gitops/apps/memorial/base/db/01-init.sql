@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS orders (
   package_type      VARCHAR(50)  NOT NULL,
   status            VARCHAR(50)  NOT NULL DEFAULT 'pending',
   upload_token      VARCHAR(128) UNIQUE,
+  pending_pin_hash  VARCHAR(255),
   duration_months   INTEGER,
   created_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
   updated_at        TIMESTAMPTZ  NOT NULL DEFAULT NOW()
@@ -72,6 +73,7 @@ CREATE INDEX idx_activity_entity       ON activity_log(entity_type, entity_id);
 
 -- migrations: safe to re-run on existing DBs
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS duration_months INTEGER;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS pending_pin_hash VARCHAR(255);
 ALTER TABLE galleries ADD COLUMN IF NOT EXISTS renewal_reminder_sent_at TIMESTAMPTZ;
 CREATE INDEX IF NOT EXISTS idx_galleries_expires_at ON galleries(expires_at) WHERE expires_at IS NOT NULL;
 
