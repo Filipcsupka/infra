@@ -4,9 +4,11 @@ metadata:
   name: memorial-schema-migration
   namespace: memorial
   annotations:
-    # The database Deployment is in the default wave (0). Argo waits for it
-    # to become Healthy before this one-shot migration, then rolls the API.
-    argocd.argoproj.io/sync-wave: "1"
+    # This must complete before the API image that reads pending_pin_hash is
+    # applied. A hook avoids the unrelated degraded backup CronJob blocking a
+    # later sync wave.
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
 spec:
   backoffLimit: 3
   template:
