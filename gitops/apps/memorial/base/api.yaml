@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: memorial-api
   namespace: memorial
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
   labels:
     app: memorial-api
 spec:

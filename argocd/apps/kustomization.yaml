@@ -1,10 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# observability (monitoring + Loki + MinIO + dcgm + alloy) is intentionally NOT
-# Argo-managed: it lives on the GPU node k3sgpu, which is normally powered off.
-# Argo-reconciling unschedulable apps caused API/kine storms → apply these
-# manually when the GPU node is up. Manifests kept under ./observability.
+# GPU/AI workloads (ai-chat, k8s-ai-agent, observability, lobbyai) moved out
+# entirely to the ai-infra repo on 2026-08-30 — k3sgpu is no longer a member
+# of this cluster. See ai-infra repo README + ops-brain khtz.md. The only
+# thing left here that talks to that box is the ai-chat-proxy routing shim
+# under web/ (Service+EndpointSlice+Ingress, no scheduled pod).
 resources:
   - core
   - web

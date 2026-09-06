@@ -1,24 +1,24 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: uptime-kuma
-  namespace: monitoring
+  name: rag-api
+  namespace: ai-chat
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: traefik
   rules:
-    - host: status.filipcsupka.online
+    - host: ai.filipcsupka.online
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: uptime-kuma
+                name: rag-api
                 port:
-                  number: 3001
+                  number: 8001
   tls:
     - hosts:
-        - status.filipcsupka.online
-      secretName: uptime-kuma-tls
+        - ai.filipcsupka.online
+      secretName: rag-api-tls

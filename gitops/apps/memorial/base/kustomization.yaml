@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - config.yaml
+  - schema-migration.yaml
   - postgres.yaml
   - minio.yaml
   - mailhog.yaml
