@@ -3,3 +3,5 @@ kind: Kustomization
 
 resources:
   - invest-buddy-secrets.yaml
+  - invest-buddy-scanner-secrets.yaml
+  - invest-buddy-codex-auth-seed.yaml
