@@ -5,7 +5,7 @@ resources:
 images:
   - name: ghcr.io/filipcsupka/invest-buddy
     newName: ghcr.io/filipcsupka/invest-buddy
-    newTag: sha-3402f3f
+    newTag: sha-5bf6e9d
   - name: ghcr.io/filipcsupka/invest-buddy-scanner
     newName: ghcr.io/filipcsupka/invest-buddy-scanner
-    newTag: sha-3402f3f
+    newTag: sha-5bf6e9d
