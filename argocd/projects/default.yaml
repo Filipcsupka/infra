@@ -35,6 +35,8 @@ spec:
       server: https://kubernetes.default.svc
     - namespace: memorial
       server: https://kubernetes.default.svc
+    - namespace: invest
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: "*"
       kind: "*"

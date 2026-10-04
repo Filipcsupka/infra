@@ -14,4 +14,6 @@ resources:
   - staging.yaml
   - memorial.yaml
   - memorial-secrets.yaml
+  - invest-buddy.yaml
+  - invest-buddy-secrets.yaml
   - ai-chat.yaml
