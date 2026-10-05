@@ -4,7 +4,7 @@ metadata:
   name: invest-buddy-scan-claude
   namespace: invest
 spec:
-  suspend: false
+  suspend: true # paused: scan used too much Claude subscription quota
   schedule: "30 5 * * 1-5"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
