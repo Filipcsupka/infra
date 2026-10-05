@@ -9,4 +9,6 @@ resources:
   - codex-home-pvc.yaml
   - scan-cronjob.yaml
   - cronjobs.yaml
+  - collector-cronjobs.yaml
+  - extract-judge-cronjobs.yaml
   - backup-cronjob.yaml
