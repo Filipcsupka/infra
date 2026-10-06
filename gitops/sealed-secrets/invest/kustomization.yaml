@@ -6,3 +6,4 @@ resources:
   - invest-buddy-scanner-secrets.yaml
   - invest-buddy-codex-auth-seed.yaml
   - invest-buddy-market-secrets.yaml
+  - invest-buddy-source-keys.yaml
