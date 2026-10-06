@@ -59,7 +59,7 @@ redis:
 configs:
   cm:
     application.resourceTrackingMethod: annotation
-    timeout.reconciliation: 300s
+    timeout.reconciliation: 60s
   params:
     controller.status.processors: "3"
     controller.operation.processors: "2"
