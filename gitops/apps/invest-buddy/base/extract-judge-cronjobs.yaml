@@ -4,7 +4,7 @@ metadata:
   name: invest-buddy-extract
   namespace: invest
 spec:
-  suspend: true
+  suspend: false
   # After detect (06:10, 10 min deadline) and before reconcile (07:00). Reads every universe symbol's stored bundle and skips the ones whose input hash was already extracted, so no symbol list has to pass from detect. Ends by 06:55 at the latest.
   schedule: "25 6 * * 2-6"
   timeZone: Europe/Bratislava
@@ -81,7 +81,7 @@ metadata:
   name: invest-buddy-judge
   namespace: invest
 spec:
-  suspend: true
+  suspend: false
   # Last in the chain: after daily (07:15). One model call for the symbols whose decision changed; the script skips an unchanged day.
   schedule: "45 7 * * 2-6"
   timeZone: Europe/Bratislava
