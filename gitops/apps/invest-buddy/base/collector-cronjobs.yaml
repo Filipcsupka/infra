@@ -5,8 +5,8 @@ metadata:
   namespace: invest
 spec:
   suspend: false
-  # After invest-buddy-prices (05:00 Tue-Sat, 30 min deadline) so price facts use today's bars. Ends by 06:05 at the latest, before detect (06:10).
-  schedule: "35 5 * * 2-6"
+  # After prices (00:30 Tue-Sat, latest end 01:00). Ends by 01:35 before detect.
+  schedule: "0 1 * * 2-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 300
@@ -84,7 +84,7 @@ metadata:
 spec:
   suspend: false
   # Weekly EPS surprise from Alpha Vantage EARNINGS. Free key: 25 requests a day; the source stops at 20 per run and per UTC day.
-  # Saturday 08:00 is outside the Tuesday to Saturday chain (collect 05:35 to judge 07:45).
+  # Saturday 08:00 is a separate weekly source refresh after the weekday chain.
   schedule: "0 8 * * 6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -153,8 +153,8 @@ metadata:
   namespace: invest
 spec:
   suspend: false
-  # After collect's 1800 s deadline (05:35 + 30 min = 06:05) and before extract (06:25) and reconcile (07:00).
-  schedule: "10 6 * * 2-6"
+  # After collect's latest end (01:35) and before extract (01:50).
+  schedule: "35 1 * * 2-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 300
