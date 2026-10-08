@@ -62,12 +62,6 @@ spec:
           env:
             - name: DATA_MODE
               value: db
-            # The Claude token is a subscription, so the real limits are the account's 5 hour and weekly windows, not USD or tokens.
-            # The in-app monthly guard is set so high it never blocks; the change gate keeps usage low.
-            - name: AI_MONTHLY_TOKEN_CAP
-              value: "1000000000"
-            - name: AI_MONTHLY_USD_CAP
-              value: "100000"
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
