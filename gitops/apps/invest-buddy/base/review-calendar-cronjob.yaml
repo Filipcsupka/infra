@@ -1,12 +1,12 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: invest-buddy-extract
+  name: invest-buddy-review-calendar
   namespace: invest
 spec:
   suspend: false
-  # After detect (01:35). Reads the persisted gate through the web; an empty gate exits without a model call. Latest end 03:55 with a late start.
-  schedule: "50 1 * * 2-6"
+  # Saturday after discovery ends. Reviews at most six symbols due for a 30-day review.
+  schedule: "0 11 * * 6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 300
@@ -16,7 +16,7 @@ spec:
     spec:
       # A quota or auth failure must not retry at once; the next scheduled run is the retry.
       backoffLimit: 0
-      activeDeadlineSeconds: 7200
+      activeDeadlineSeconds: 6000
       template:
         spec:
           restartPolicy: Never
@@ -30,11 +30,11 @@ spec:
             fsGroup: 10001
             seccompProfile:
               type: RuntimeDefault
-          containers:
+          initContainers:
             - name: extract
               image: ghcr.io/filipcsupka/invest-buddy-scanner:latest
               command: ["node", "/app/scanner/run-extract.mjs"]
-              args: ["--agent", "claude", "--model", "haiku", "--gate-from-db"]
+              args: ["--agent", "claude", "--model", "haiku", "--review-calendar", "/tmp/review-symbols.json", "--force"]
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
@@ -69,50 +69,68 @@ spec:
                 limits:
                   cpu: "2"
                   memory: 1Gi
-          volumes:
-            - name: tmp
-              emptyDir: {}
-            - name: scanner-home
-              emptyDir: {}
-            - name: scan-out
-              emptyDir: {}
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: invest-buddy-judge
-  namespace: invest
-spec:
-  suspend: false
-  # After daily's latest end (05:30). Reads the extracted gate through the web and calls the model only for changed decisions. F5 will add a separate fixed review schedule.
-  schedule: "30 5 * * 2-6"
-  timeZone: Europe/Bratislava
-  concurrencyPolicy: Forbid
-  startingDeadlineSeconds: 300
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
-  jobTemplate:
-    spec:
-      backoffLimit: 0
-      activeDeadlineSeconds: 3600
-      template:
-        spec:
-          restartPolicy: Never
-          automountServiceAccountToken: false
-          nodeSelector:
-            kubernetes.io/hostname: k8s-worker-01
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 10001
-            runAsGroup: 10001
-            fsGroup: 10001
-            seccompProfile:
-              type: RuntimeDefault
+            - name: reconcile
+              image: ghcr.io/filipcsupka/invest-buddy:latest
+              command: ["node", "dist/jobs/reconcile.js"]
+              env:
+                - name: DATA_MODE
+                  value: db
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-secrets
+                      key: DATABASE_URL
+                - name: SEC_USER_AGENT
+                  valueFrom:
+                    configMapKeyRef:
+                      name: invest-buddy-reconcile-config
+                      key: SEC_USER_AGENT
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: "1"
+                  memory: 512Mi
+            - name: daily
+              image: ghcr.io/filipcsupka/invest-buddy:latest
+              command: ["node", "dist/jobs/daily.js"]
+              env:
+                - name: DATA_MODE
+                  value: db
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-secrets
+                      key: DATABASE_URL
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              volumeMounts:
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: "1"
+                  memory: 512Mi
           containers:
             - name: judge
               image: ghcr.io/filipcsupka/invest-buddy-scanner:latest
               command: ["node", "/app/scanner/run-judge.mjs"]
-              args: ["--model", "sonnet", "--gate-from-db"]
+              args: ["--model", "sonnet", "--symbols-file", "/tmp/review-symbols.json", "--force", "--max-symbols", "6"]
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
@@ -121,6 +139,8 @@ spec:
               env:
                 - name: INGEST_BASE_URL
                   value: http://web.invest.svc.cluster.local:3000
+                - name: AI_DAILY_TOKEN_CEILING
+                  value: "0"
                 - name: INGEST_TOKEN
                   valueFrom:
                     secretKeyRef:
