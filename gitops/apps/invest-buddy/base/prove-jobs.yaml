@@ -1,0 +1,259 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prove-chain-1009
+  namespace: invest
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 7200
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-01
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: judge
+        image: ghcr.io/filipcsupka/invest-buddy-scanner:latest
+        command:
+        - node
+        - /app/scanner/run-judge.mjs
+        args:
+        - --model
+        - sonnet
+        - --gate-from-db
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: INGEST_BASE_URL
+          value: http://web.invest.svc.cluster.local:3000
+        - name: INGEST_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: invest-buddy-secrets
+              key: INGEST_TOKEN
+        - name: CLAUDE_CODE_OAUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: invest-buddy-scanner-secrets
+              key: CLAUDE_CODE_OAUTH_TOKEN
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: scanner-home
+          mountPath: /home/scanner
+        - name: scan-out
+          mountPath: /app/scanner/out
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 1Gi
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: scanner-home
+        emptyDir: {}
+      - name: scan-out
+        emptyDir: {}
+      initContainers:
+      - name: detect
+        image: ghcr.io/filipcsupka/invest-buddy:latest
+        command:
+        - node
+        - dist/jobs/detect.js
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: invest-buddy-secrets
+              key: DATABASE_URL
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 384Mi
+      - name: extract
+        image: ghcr.io/filipcsupka/invest-buddy-scanner:latest
+        command:
+        - node
+        - /app/scanner/run-extract.mjs
+        args:
+        - --agent
+        - claude
+        - --model
+        - haiku
+        - --gate-from-db
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        env:
+        - name: INGEST_BASE_URL
+          value: http://web.invest.svc.cluster.local:3000
+        - name: AI_DAILY_TOKEN_CEILING
+          value: '0'
+        - name: INGEST_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: invest-buddy-secrets
+              key: INGEST_TOKEN
+        - name: CLAUDE_CODE_OAUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: invest-buddy-scanner-secrets
+              key: CLAUDE_CODE_OAUTH_TOKEN
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: scanner-home
+          mountPath: /home/scanner
+        - name: scan-out
+          mountPath: /app/scanner/out
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: '2'
+            memory: 1Gi
+      - name: reconcile
+        image: ghcr.io/filipcsupka/invest-buddy:latest
+        command:
+        - node
+        - dist/jobs/reconcile.js
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: invest-buddy-secrets
+              key: DATABASE_URL
+        - name: SEC_USER_AGENT
+          valueFrom:
+            configMapKeyRef:
+              name: invest-buddy-reconcile-config
+              key: SEC_USER_AGENT
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      - name: daily
+        image: ghcr.io/filipcsupka/invest-buddy:latest
+        command:
+        - node
+        - dist/jobs/daily.js
+        env:
+        - name: DATA_MODE
+          value: db
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: invest-buddy-secrets
+              key: DATABASE_URL
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prove-discovery-1009
+  namespace: invest
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-01
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: discovery
+        image: ghcr.io/filipcsupka/invest-buddy:latest
+        command:
+        - node
+        - dist/jobs/discovery.js
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: invest-buddy-secrets
+              key: DATABASE_URL
+        - name: SEC_USER_AGENT
+          valueFrom:
+            configMapKeyRef:
+              name: invest-buddy-reconcile-config
+              key: SEC_USER_AGENT
+        - name: TWELVE_DATA_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: invest-buddy-market-secrets
+              key: TWELVE_DATA_API_KEY
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 512Mi
