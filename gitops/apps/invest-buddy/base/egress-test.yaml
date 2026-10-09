@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: egress-test-1009
+  namespace: invest
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-01
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: egress
+        image: ghcr.io/filipcsupka/invest-buddy-scanner:latest
+        command:
+        - node
+        - -e
+        - |
+          const urls = ["https://www.sec.gov/robots.txt", "https://data.sec.gov/submissions/CIK0001045810.json", "https://api.stlouisfed.org/", "https://api.twelvedata.com/", "https://api.openfigi.com/", "https://api.fda.gov/", "https://clinicaltrials.gov/", "https://api.usaspending.gov/", "https://news.google.com/", "https://www.treasury.gov/", "https://example.invalid/"];
+          (async () => { for (const u of urls) { try { const r = await fetch(u, { headers: { "User-Agent": "invest-buddy egress test" }, signal: AbortSignal.timeout(15000) }); console.log(u, r.status); } catch (e) { console.log(u, "FAIL", e.cause?.code ?? e.message); } } })();
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
