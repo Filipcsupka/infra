@@ -12,3 +12,4 @@ resources:
   - review-calendar-cronjob.yaml
   - macro-cronjob.yaml
   - backup-cronjob.yaml
+  - c6-ceiling-proof.yaml

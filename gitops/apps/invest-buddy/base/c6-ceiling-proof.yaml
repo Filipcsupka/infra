@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: c6-ceiling-proof-1009
+  namespace: invest
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-01
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: extract
+          image: ghcr.io/filipcsupka/invest-buddy-scanner:latest
+          command: ["node", "/app/scanner/run-extract.mjs"]
+          # Ceiling of 1 token is already exceeded by today's runs, so the guard must stop before any model call (exit 5).
+          args: ["--agent", "claude", "--model", "haiku", "--only", "NVDA", "--force", "--concurrency", "1"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: INGEST_BASE_URL
+              value: http://web.invest.svc.cluster.local:3000
+            - name: AI_DAILY_TOKEN_CEILING
+              value: "1"
+            - name: INGEST_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: invest-buddy-secrets
+                  key: INGEST_TOKEN
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: scanner-home
+              mountPath: /home/scanner
+            - name: scan-out
+              mountPath: /app/scanner/out
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 1Gi
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: scanner-home
+          emptyDir: {}
+        - name: scan-out
+          emptyDir: {}
