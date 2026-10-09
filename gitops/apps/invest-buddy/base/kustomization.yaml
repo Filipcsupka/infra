@@ -12,3 +12,4 @@ resources:
   - review-calendar-cronjob.yaml
   - macro-cronjob.yaml
   - backup-cronjob.yaml
+  - prove-jobs.yaml
