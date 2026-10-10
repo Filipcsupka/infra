@@ -8,3 +8,4 @@ resources:
   - invest-buddy-market-secrets.yaml
   - invest-buddy-source-keys.yaml
   - invest-buddy-flex-secrets.yaml
+  - invest-buddy-telegram.yaml
