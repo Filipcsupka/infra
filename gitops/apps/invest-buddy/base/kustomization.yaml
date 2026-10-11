@@ -11,4 +11,8 @@ resources:
   - extract-judge-cronjobs.yaml
   - review-calendar-cronjob.yaml
   - macro-cronjob.yaml
+  - earnings-calendar-cronjob.yaml
+  - holder-events-cronjob.yaml
+  - master-refresh-cronjob.yaml
+  - weekly-cronjob.yaml
   - backup-cronjob.yaml
