@@ -20,3 +20,4 @@ resources:
   - research-verify-networkpolicy.yaml
   - horizon-labels-cronjob.yaml
   - pool-bars-cronjob.yaml
+  - universe-promote-cronjob.yaml
