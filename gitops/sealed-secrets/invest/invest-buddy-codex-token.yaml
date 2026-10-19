@@ -1,0 +1,13 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: invest-buddy-codex-token
+  namespace: invest
+spec:
+  encryptedData:
+    CODEX_ACCESS_TOKEN: AgAlu258UnEY57pOdHipHfZk4Pn2YmmCn5AHks0wNVLZJCD5t/Qbgn+YutUCxi43KS68Kkc11ggw/DCgg4pGC2ziiQn7DjY0eOWrr7D6NicSCSwC8nvHzty414pLCXiFg5Iz7VhGC7Afw1kI/uY6CttKO83x8x2Ndxqn4L3I+SAbwn0Fx9TRBDqd0Sdd60smBZxpawqZeii5oxEc6WDeQ6nflUg71G1qymAWenkE3cDzVkqnPVsmL6Upc4HoAYukP01t/8bbizbHMKCfxzFal4fgxz7MXFnjOZYm5011yJHprYYb/rarKtmpkKMZ86KTaqmzNHK9geAznEY3Gv7EdCzjF0stRCE0r+Ryco9yPTAWhVHeKvK+C3+kEAjaYPQ7+CGNVnCWyi0mjLZx9/00Ud5sVyUVcTejvwwQ3X6Oit1XtWrjRaRuOG7eJJxTrkcvbKS9K26tLRTyEnOkLKK2bIec7We2S+l2Tf/mR7nfbzqndTj/o46ApiRC1OhivMi26PAPSTh50j53Kt1ulkrDWFgYj0s1c5/ycNEsjfdQ6gYgx5t84OAbeMuiOvidGRFUnH46y8bqyi+NZxYOeGnWx2z9igk6H2RuoljwE5y5Nd9JWbL8ABK5/Xle3AOLzjJ6whOzsSX8OjHs7N3CfzQMofuEFoSt/l6hh114LurtGb1WBdhyEdpRK6v5Ji/1QOXCoLni6nr1O1O08KstI4MAnUFdI370JAEk5nlD7mSpuenLjafqN7fw2gQDmk69aR4O
+  template:
+    metadata:
+      name: invest-buddy-codex-token
+      namespace: invest
