@@ -5,9 +5,10 @@ metadata:
   namespace: invest
 spec:
   suspend: false
-  # After prices (00:30 Tue-Sat, latest end 01:00). Ends by 01:35 before detect.
-  # Monday is a store-only catch-up: weekend filings and press releases are saved before the RSS feeds roll over.
-  # No prices, detect, extract or scoring on Monday.
+  # After prices (00:10 Tue-Sat, latest end 00:50). Ends by 01:35 before detect.
+  # Monday is a store-only catch-up: weekend filings and press releases are saved before the
+  # RSS feeds roll over. No prices, detect, extract or scoring run on Monday; Tuesday's detect
+  # gates everything collected since Saturday.
   schedule: "0 1 * * 1-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -322,8 +323,8 @@ metadata:
   namespace: invest
 spec:
   suspend: false
-  # Weekly, Saturday after collect-alphavantage (08:00). Finds new tickers outside the universe, scores them with the same rules and stores candidates; promoted ones enter the universe for the next weekday chain.
-  schedule: "30 9 * * 6"
+  # Daily at 09:30; results are keyed by ISO week, so reruns add new names to the current week. Finds new tickers outside the universe, scores them with the same rules and stores candidates; promoted ones enter the universe for the next weekday chain.
+  schedule: "30 9 * * 0-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 600
@@ -365,6 +366,20 @@ spec:
                     secretKeyRef:
                       name: invest-buddy-market-secrets
                       key: TWELVE_DATA_API_KEY
+                - name: DIGEST_LOCALE
+                  value: sk
+                - name: TELEGRAM_BOT_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-telegram
+                      key: TELEGRAM_BOT_TOKEN
+                      optional: true
+                - name: TELEGRAM_CHAT_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-telegram
+                      key: TELEGRAM_CHAT_ID
+                      optional: true
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true
