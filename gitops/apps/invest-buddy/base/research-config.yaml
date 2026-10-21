@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: invest-buddy-research-config
+  namespace: invest
+data:
+  # Owner decision 2026-10-19: research runs on schedule. Notify runs daily; it sends nothing until the owner Telegram secret exists (optional ref).
+  RESEARCH_ENABLED: "on"
+  AI_DAILY_TOKEN_CEILING: "0"
