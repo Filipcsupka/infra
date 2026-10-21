@@ -4,7 +4,7 @@ metadata:
   name: invest-buddy-review-calendar
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   # Saturday after discovery ends. Reviews at most six symbols due for a 30-day review.
   schedule: "0 11 * * 6"
   timeZone: Europe/Bratislava
