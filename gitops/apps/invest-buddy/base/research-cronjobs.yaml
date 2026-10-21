@@ -14,7 +14,7 @@ metadata:
   name: invest-buddy-research-weekly
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "0 1 * * 0-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -114,7 +114,7 @@ metadata:
   name: invest-buddy-research-daily
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "40 2 * * 2-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -214,7 +214,7 @@ metadata:
   name: invest-buddy-research-verify
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "30 3 * * 0-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -287,7 +287,7 @@ metadata:
   name: invest-buddy-research-pipeline-early
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "50 3 * * 0-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -365,7 +365,7 @@ metadata:
   name: invest-buddy-research-pipeline
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "40 4 * * 2-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -443,7 +443,7 @@ metadata:
   name: invest-buddy-research-notify
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "20 7 * * 2-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -624,7 +624,7 @@ metadata:
   name: invest-buddy-research-scout
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "0 13 * * 0-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -726,7 +726,7 @@ metadata:
   name: invest-buddy-research-verify-pm
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "40 13 * * 0-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -799,7 +799,7 @@ metadata:
   name: invest-buddy-research-pipeline-pm
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "10 14 * * 0-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
