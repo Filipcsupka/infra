@@ -62,7 +62,7 @@ metadata:
   name: invest-buddy-etf-enrich
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "40 5 * * 0"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -148,7 +148,7 @@ metadata:
   name: invest-buddy-etf-research
   namespace: invest
 spec:
-  suspend: false
+  suspend: true
   schedule: "40 7 * * 1"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
