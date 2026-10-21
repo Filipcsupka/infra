@@ -17,6 +17,7 @@ resources:
   - weekly-cronjob.yaml
   - backup-cronjob.yaml
   - research-cronjobs.yaml
+  - etf-cronjobs.yaml
   - research-verify-networkpolicy.yaml
   - horizon-labels-cronjob.yaml
   - pool-bars-cronjob.yaml
