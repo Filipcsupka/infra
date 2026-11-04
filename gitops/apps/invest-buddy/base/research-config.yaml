@@ -4,6 +4,6 @@ metadata:
   name: invest-buddy-research-config
   namespace: invest
 data:
-  # Owner decision 2026-10-19: research runs on schedule. Notify runs daily; it sends nothing until the owner Telegram secret exists (optional ref).
+  # ETF jobs still read this setting after the research CronJobs are removed.
   RESEARCH_ENABLED: "on"
   AI_DAILY_TOKEN_CEILING: "0"
