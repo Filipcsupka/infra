@@ -1,0 +1,310 @@
+# EODHD data jobs. All start suspended: enable after secret invest-buddy-eodhd (key api-key) exists and a --dry-run looked right.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invest-buddy-eodhd-symbols-sync
+  namespace: invest
+spec:
+  suspend: true
+  schedule: "20 5 * * 0"
+  timeZone: Europe/Bratislava
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: invest-buddy
+            app.kubernetes.io/component: eodhd-symbols-sync
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          nodeSelector:
+            kubernetes.io/hostname: k8s-worker-01
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: eodhd-symbols-sync
+              image: ghcr.io/filipcsupka/invest-buddy:latest
+              command: ["node", "dist/jobs/symbols-sync.js"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-secrets
+                      key: DATABASE_URL
+                - name: EODHD_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-eodhd
+                      key: api-key
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invest-buddy-eodhd-prices
+  namespace: invest
+spec:
+  suspend: true
+  schedule: "30 22 * * 1-5"
+  timeZone: Europe/Bratislava
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: invest-buddy
+            app.kubernetes.io/component: eodhd-prices
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          nodeSelector:
+            kubernetes.io/hostname: k8s-worker-01
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: eodhd-prices
+              image: ghcr.io/filipcsupka/invest-buddy:latest
+              command: ["node", "dist/jobs/eodhd-prices.js", "--mode", "daily"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-secrets
+                      key: DATABASE_URL
+                - name: EODHD_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-eodhd
+                      key: api-key
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invest-buddy-eodhd-fundamentals
+  namespace: invest
+spec:
+  suspend: true
+  schedule: "30 6 * * *"
+  timeZone: Europe/Bratislava
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: invest-buddy
+            app.kubernetes.io/component: eodhd-fundamentals
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          nodeSelector:
+            kubernetes.io/hostname: k8s-worker-01
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: eodhd-fundamentals
+              image: ghcr.io/filipcsupka/invest-buddy:latest
+              command: ["node", "dist/jobs/eodhd-fundamentals.js"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-secrets
+                      key: DATABASE_URL
+                - name: EODHD_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-eodhd
+                      key: api-key
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invest-buddy-eodhd-catalyst
+  namespace: invest
+spec:
+  suspend: true
+  schedule: "45 6 * * 1-5"
+  timeZone: Europe/Bratislava
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: invest-buddy
+            app.kubernetes.io/component: eodhd-catalyst
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          nodeSelector:
+            kubernetes.io/hostname: k8s-worker-01
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: eodhd-catalyst
+              image: ghcr.io/filipcsupka/invest-buddy:latest
+              command: ["node", "dist/jobs/eodhd-catalyst.js"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-secrets
+                      key: DATABASE_URL
+                - name: EODHD_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-eodhd
+                      key: api-key
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: invest-buddy-eodhd-insider
+  namespace: invest
+spec:
+  suspend: true
+  schedule: "15 7 * * 1-5"
+  timeZone: Europe/Bratislava
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: invest-buddy
+            app.kubernetes.io/component: eodhd-insider
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          nodeSelector:
+            kubernetes.io/hostname: k8s-worker-01
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            fsGroup: 10001
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+            - name: eodhd-insider
+              image: ghcr.io/filipcsupka/invest-buddy:latest
+              command: ["node", "dist/jobs/eodhd-insider.js"]
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-secrets
+                      key: DATABASE_URL
+                - name: EODHD_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-eodhd
+                      key: api-key
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+                limits:
+                  cpu: "1"
+                  memory: 1Gi

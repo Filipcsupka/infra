@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: invest-buddy-research-config
+  namespace: invest
+data:
+  # ETF jobs still read this setting after the research CronJobs are removed.
+  RESEARCH_ENABLED: "on"
+  AI_DAILY_TOKEN_CEILING: "0"
