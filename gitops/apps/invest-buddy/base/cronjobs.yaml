@@ -12,6 +12,8 @@ metadata:
   name: invest-buddy-prices
   namespace: invest
 spec:
+  # Suspended 2026-11-06: EODHD prices replace Twelve Data; this job would overwrite EODHD bars.
+  suspend: true
   schedule: "10 0 * * 2-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -103,6 +105,9 @@ spec:
               image: ghcr.io/filipcsupka/invest-buddy:latest
               command: ["node", "dist/jobs/reconcile.js"]
               env:
+                # Owner decision 2026-11-06: private use of EODHD data until licence is settled.
+                - name: EODHD_PRIVATE_USE
+                  value: "on"
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
@@ -168,6 +173,8 @@ spec:
               image: ghcr.io/filipcsupka/invest-buddy:latest
               command: ["node", "dist/jobs/daily.js"]
               env:
+                - name: EODHD_PRIVATE_USE
+                  value: "on"
                 - name: DATA_MODE
                   value: db
                 - name: DATABASE_URL

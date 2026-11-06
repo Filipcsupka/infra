@@ -60,6 +60,8 @@ spec:
           ports:
             - containerPort: 3000
           env:
+            - name: EODHD_PRIVATE_USE
+              value: "on"
             - name: DATA_MODE
               value: db
             # Owner decision 2026-10-19: show the next Alpha Vantage earnings date on company pages.
