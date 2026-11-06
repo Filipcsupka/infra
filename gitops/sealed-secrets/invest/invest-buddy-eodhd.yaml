@@ -1,0 +1,13 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: invest-buddy-eodhd
+  namespace: invest
+spec:
+  encryptedData:
+    api-key: AgBt4KnfvI9OvzNtJ2Xkp48neTNVK18hfCEJUOY5fG2lj9GqAKrrOs4uU4ZwXwj/BVSfL12sSLulQ7X4Gx4pPnyxEX7KU9wFrHQs0i5IOMgX/+PmlQ040FSj518Lg9240xzPfXgKeuDZI6N4pRUnxV63AJSi+tFdmHjoqCIoo+E7dqMZby+lbt5XYm/jy6Yd0+t5LYsSH0s587oqo/mMAzPOjp8sPu1Ne7ScJX24CBjJZ9aqJpCUoslv6b4EZqtt98XKqVXQaDBoFfQF5g/seIY3EMmK+2Q9XijxIk9jnQZ7Dc1OPKjTOoG9JZyt2F3+/XqqIWOULUGSSuKfkx9+oCNDOgMVrf+FFSIcdn3kskXeUBOEs7ayVFYWIUncAY/rGm7oWyxppvM7v1uLV+NVAjlXekCuYXR2bc84g/e7Dg5EwKHHWhaAYJSWb/tElwc/LlsPDM2x6e5sOJQ9ljPCQEvOF7shg1/OsHh5mA01aQ0NQD3oIkz/9ogNurw+fdAcKb2LtQ9dkJF+4mUoWVuOkv3hgnsRbWXlaPazxOhFhyafGYE2T7DWxVvVuTfkMwTnXGeaXaFdAY1Mit6Ov6GtzgFFtX0XCSJnjXaNl2yTWqlSjBDNmR9qJjdCJsaG2pf+Myp1JVKUgbcQbklD54rhyFKs0R18PntpdpyleOY+rtIuxHwoFFJauOYlG80x1DQfSqjJYziNM/5NFJaazKjhHFZjQjRpU9iSGg==
+  template:
+    metadata:
+      name: invest-buddy-eodhd
+      namespace: invest
