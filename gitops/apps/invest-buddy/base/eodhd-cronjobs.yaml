@@ -1,11 +1,11 @@
-# EODHD data jobs. All start suspended: enable after secret invest-buddy-eodhd (key api-key) exists and a --dry-run looked right.
+# EODHD data jobs. Enabled 2026-11-06 after secret invest-buddy-eodhd existed and dry runs passed. Fundamentals and insider run before macro/reconcile/daily (04:00 to 04:25).
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: invest-buddy-eodhd-symbols-sync
   namespace: invest
 spec:
-  suspend: true
+  suspend: false
   schedule: "20 5 * * 0"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -67,7 +67,7 @@ metadata:
   name: invest-buddy-eodhd-prices
   namespace: invest
 spec:
-  suspend: true
+  suspend: false
   schedule: "30 22 * * 1-5"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -129,8 +129,8 @@ metadata:
   name: invest-buddy-eodhd-fundamentals
   namespace: invest
 spec:
-  suspend: true
-  schedule: "30 6 * * *"
+  suspend: false
+  schedule: "30 2 * * *"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 300
@@ -191,7 +191,7 @@ metadata:
   name: invest-buddy-eodhd-catalyst
   namespace: invest
 spec:
-  suspend: true
+  suspend: false
   schedule: "45 6 * * 1-5"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
@@ -229,6 +229,8 @@ spec:
                 capabilities:
                   drop: ["ALL"]
               env:
+                - name: EODHD_PRIVATE_USE
+                  value: "on"
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
@@ -253,8 +255,8 @@ metadata:
   name: invest-buddy-eodhd-insider
   namespace: invest
 spec:
-  suspend: true
-  schedule: "15 7 * * 1-5"
+  suspend: false
+  schedule: "45 2 * * 2-6"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 300
