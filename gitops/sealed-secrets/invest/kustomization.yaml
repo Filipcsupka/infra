@@ -8,5 +8,6 @@ resources:
   - invest-buddy-codex-token.yaml
   - invest-buddy-market-secrets.yaml
   - invest-buddy-source-keys.yaml
+  - invest-buddy-eodhd.yaml
   - invest-buddy-flex-secrets.yaml
   - invest-buddy-telegram.yaml
