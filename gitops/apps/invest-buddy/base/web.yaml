@@ -65,6 +65,9 @@ spec:
             # Owner pages (/owner/*) behind basic auth, user "owner". Secret created by hand, not in git.
             - name: OWNER_VIEW
               value: "on"
+            # Markets views are owner-only (basic auth, see src/markets/gate.ts).
+            - name: MARKETS_VIEWS
+              value: "on"
             - name: OWNER_RESEARCH_PASSWORD
               valueFrom:
                 secretKeyRef:
