@@ -108,6 +108,9 @@ spec:
                 # Owner decision 2026-11-06: private use of EODHD data until licence is settled.
                 - name: EODHD_PRIVATE_USE
                   value: "on"
+                # Owner decision 2026-11-07: score the collect-only extended list privately (needs EODHD_PRIVATE_USE=on).
+                - name: SCORE_EXTENDED
+                  value: "on"
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
@@ -175,6 +178,9 @@ spec:
               env:
                 - name: EODHD_PRIVATE_USE
                   value: "on"
+                # Owner decision 2026-11-07: score the collect-only extended list privately (needs EODHD_PRIVATE_USE=on).
+                - name: SCORE_EXTENDED
+                  value: "on"
                 - name: DATA_MODE
                   value: db
                 - name: DATABASE_URL
@@ -182,6 +188,14 @@ spec:
                     secretKeyRef:
                       name: invest-buddy-secrets
                       key: DATABASE_URL
+                # Daily purges the web cache after scoring (purgeWebCacheRemote); without these it skips.
+                - name: INGEST_BASE_URL
+                  value: http://web.invest.svc.cluster.local:3000
+                - name: INGEST_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: invest-buddy-secrets
+                      key: INGEST_TOKEN
               securityContext:
                 allowPrivilegeEscalation: false
                 readOnlyRootFilesystem: true

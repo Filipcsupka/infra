@@ -62,6 +62,9 @@ spec:
           env:
             - name: EODHD_PRIVATE_USE
               value: "on"
+            # Owner decision 2026-11-07: owner-gated score pages list scored extended names.
+            - name: SCORE_EXTENDED
+              value: "on"
             # Owner pages (/owner/*) behind basic auth, user "owner". Secret created by hand, not in git.
             - name: OWNER_VIEW
               value: "on"

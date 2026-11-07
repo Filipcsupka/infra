@@ -36,6 +36,11 @@ spec:
               env:
                 - name: ECB_FX_ENABLED
                   value: "on"
+                - name: EODHD_PRIVATE_USE
+                  value: "on"
+                # Owner decision 2026-11-07: score the collect-only extended list privately (needs EODHD_PRIVATE_USE=on).
+                - name: SCORE_EXTENDED
+                  value: "on"
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
