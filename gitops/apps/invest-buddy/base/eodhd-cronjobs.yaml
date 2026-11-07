@@ -231,6 +231,9 @@ spec:
               env:
                 - name: EODHD_PRIVATE_USE
                   value: "on"
+                # Owner decision 2026-11-07: extended names are scored privately, so they get catalyst facts too.
+                - name: SCORE_EXTENDED
+                  value: "on"
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
