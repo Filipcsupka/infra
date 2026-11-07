@@ -18,6 +18,7 @@ resources:
   - backup-cronjob.yaml
   - research-config.yaml
   - eodhd-cronjobs.yaml
+  - markets-cronjob.yaml
   - etf-cronjobs.yaml
   - horizon-labels-cronjob.yaml
   - pool-bars-cronjob.yaml
