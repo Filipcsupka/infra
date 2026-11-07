@@ -19,6 +19,7 @@ resources:
   - research-config.yaml
   - eodhd-cronjobs.yaml
   - markets-cronjob.yaml
+  - flow-cronjob.yaml
   - etf-cronjobs.yaml
   - horizon-labels-cronjob.yaml
   - pool-bars-cronjob.yaml
