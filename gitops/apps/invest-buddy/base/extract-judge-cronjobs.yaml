@@ -121,6 +121,12 @@ spec:
               env:
                 - name: INGEST_BASE_URL
                   value: http://web.invest.svc.cluster.local:3000
+                - name: EODHD_PRIVATE_USE
+                  value: "on"
+                - name: AI_JUDGE_MONTHLY_TOKEN_CAP
+                  value: "2000000"
+                - name: AI_EXPECTED_OUTPUT_TOKENS
+                  value: "30000"
                 - name: INGEST_TOKEN
                   valueFrom:
                     secretKeyRef:
