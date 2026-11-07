@@ -20,6 +20,7 @@ resources:
   - eodhd-cronjobs.yaml
   - markets-cronjob.yaml
   - flow-cronjob.yaml
+  - eodhd-universe-seed-cronjob.yaml
   - etf-cronjobs.yaml
   - horizon-labels-cronjob.yaml
   - pool-bars-cronjob.yaml
