@@ -78,6 +78,9 @@ spec:
                   key: OWNER_RESEARCH_PASSWORD
             - name: DATA_MODE
               value: db
+            # Scores payload is ~18.5 MB with SCORE_EXTENDED on; default heap (~255 MB) ran out at 384Mi.
+            - name: NODE_OPTIONS
+              value: --max-old-space-size=768
             # Owner decision 2026-10-19: show the next Alpha Vantage earnings date on company pages.
             - name: PUBLIC_EARNINGS_DATES
               value: "on"
@@ -126,7 +129,7 @@ spec:
               memory: 128Mi
             limits:
               cpu: 1000m
-              memory: 384Mi
+              memory: 1Gi
       volumes:
         - name: next-cache
           emptyDir: {}
