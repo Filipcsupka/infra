@@ -84,6 +84,18 @@ spec:
             # Owner decision 2026-10-19: show the next Alpha Vantage earnings date on company pages.
             - name: PUBLIC_EARNINGS_DATES
               value: "on"
+            # Customer accounts (email and password). AUTH_SECRET secret created by hand, not in git.
+            - name: AUTH
+              value: "on"
+            - name: TRIAL
+              value: "on"
+            - name: AUTH_URL
+              value: https://invest.filipcsupka.online
+            - name: AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: invest-buddy-auth
+                  key: AUTH_SECRET
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
