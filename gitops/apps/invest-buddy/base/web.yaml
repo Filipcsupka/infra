@@ -91,6 +91,9 @@ spec:
               value: "on"
             - name: AUTH_URL
               value: https://invest.filipcsupka.online
+            # Owner account: user id of the founder account (full access, no tier limits).
+            - name: OWNER_USER_IDS
+              value: "2"
             - name: AUTH_SECRET
               valueFrom:
                 secretKeyRef:
