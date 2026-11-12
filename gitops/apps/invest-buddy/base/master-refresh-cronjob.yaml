@@ -5,7 +5,7 @@ metadata:
   namespace: invest
 spec:
   # D10: weekly security master refresh (CIK, SIC from SEC). Sunday, outside the Tue-Sat nightly chain. Enable after owner approval.
-  suspend: true
+  suspend: false
   schedule: "0 5 * * 0"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid

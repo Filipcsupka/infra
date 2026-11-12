@@ -22,6 +22,8 @@ resources:
   - flow-cronjob.yaml
   - eodhd-universe-seed-cronjob.yaml
   - etf-cronjobs.yaml
+  - etf-detail-cronjob.yaml
+  - etf-score-cronjob.yaml
   - horizon-labels-cronjob.yaml
   - pool-bars-cronjob.yaml
   - universe-promote-cronjob.yaml

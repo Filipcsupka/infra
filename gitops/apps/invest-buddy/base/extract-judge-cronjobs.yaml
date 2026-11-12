@@ -4,7 +4,7 @@ metadata:
   name: invest-buddy-extract
   namespace: invest
 spec:
-  suspend: true
+  suspend: false
   # After detect (01:35). Reads the persisted gate through the web; an empty gate exits without a model call. Latest end 03:55 with a late start.
   schedule: "50 1 * * 2-6"
   timeZone: Europe/Bratislava
