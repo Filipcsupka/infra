@@ -155,7 +155,7 @@ metadata:
   name: invest-buddy-collect-gdelt
   namespace: invest
 spec:
-  suspend: true
+  suspend: false
   # GDELT runs alongside the regular collector; its latest end is 01:35 before detect.
   schedule: "5 1 * * 2-6"
   timeZone: Europe/Bratislava
