@@ -37,6 +37,8 @@ spec:
               image: ghcr.io/filipcsupka/invest-buddy:latest
               command: ["node", "dist/jobs/collect.js"]
               env:
+                - name: NODE_OPTIONS
+                  value: "--max-old-space-size=384"
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
@@ -118,6 +120,8 @@ spec:
               command: ["node", "dist/jobs/collect.js"]
               args: ["--source", "alphavantage"]
               env:
+                - name: NODE_OPTIONS
+                  value: "--max-old-space-size=384"
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
@@ -185,6 +189,8 @@ spec:
               command: ["node", "dist/jobs/collect.js"]
               args: ["--source", "gdelt"]
               env:
+                - name: NODE_OPTIONS
+                  value: "--max-old-space-size=384"
                 - name: DATABASE_URL
                   valueFrom:
                     secretKeyRef:
