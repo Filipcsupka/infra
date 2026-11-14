@@ -137,6 +137,8 @@ spec:
                 capabilities:
                   drop: ["ALL"]
               env:
+                - name: EODHD_PRIVATE_USE
+                  value: "on"
                 - name: INGEST_BASE_URL
                   value: http://web.invest.svc.cluster.local:3000
                 - name: AI_DAILY_TOKEN_CEILING
