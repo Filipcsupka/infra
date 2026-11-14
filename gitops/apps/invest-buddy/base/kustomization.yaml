@@ -19,6 +19,7 @@ resources:
   - research-config.yaml
   - eodhd-cronjobs.yaml
   - markets-cronjob.yaml
+  - index-fundamentals-cronjob.yaml
   - flow-cronjob.yaml
   - eodhd-universe-seed-cronjob.yaml
   - etf-cronjobs.yaml
