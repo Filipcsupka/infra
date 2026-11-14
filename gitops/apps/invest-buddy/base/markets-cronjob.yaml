@@ -193,7 +193,7 @@ metadata:
   name: invest-buddy-eodhd-index-components
   namespace: invest
 spec:
-  suspend: false
+  suspend: true  # superseded by invest-buddy-eodhd-index-fundamentals (2026-11-14)
   schedule: "15 1 * * 0"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid

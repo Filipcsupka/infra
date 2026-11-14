@@ -1,4 +1,4 @@
-# Daily ETF rule scores from stored fund facts and bars. Writes only etf_scores. Enabled 2026-11-12.
+# Daily ETF rule scores after the 02:35 ETF bars job. Writes only etf_scores. Enabled 2026-11-12.
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -6,7 +6,7 @@ metadata:
   namespace: invest
 spec:
   suspend: false
-  schedule: "30 2 * * *"
+  schedule: "30 3 * * *"
   timeZone: Europe/Bratislava
   concurrencyPolicy: Forbid
   startingDeadlineSeconds: 300
